@@ -83,6 +83,7 @@ export interface UserSettings {
   id: string;
   water_goal_ml: number;
   sleep_goal_hours: number;
+  notifications_enabled: boolean;
 }
 
 export type GoalStatus = "ativa" | "concluida" | "pausada";
