@@ -332,6 +332,13 @@ export default function Dashboard() {
     return () => document.removeEventListener("visibilitychange", onVisible);
   }, [fetchData]);
 
+  // Re-buscar dados no pull-to-refresh
+  useEffect(() => {
+    const onPullRefresh = () => fetchData();
+    window.addEventListener("pull-refresh", onPullRefresh);
+    return () => window.removeEventListener("pull-refresh", onPullRefresh);
+  }, [fetchData]);
+
   if (loading) {
     return <BrotoLoader label="Preparando seu dashboard" fullScreen={false} />;
   }

@@ -50,8 +50,10 @@ export default function Layout({ children }: { children?: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileVersion, setProfileVersion] = useState(0);
   const [pullRefreshing, setPullRefreshing] = useState(false);
+  const [pullDistance, setPullDistance] = useState(0);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const touchStartY = useRef(0);
+  const isPulling = useRef(false);
 
   // Carregar preferência de notificações
   useEffect(() => {
@@ -77,30 +79,46 @@ export default function Layout({ children }: { children?: ReactNode }) {
 
   // Pull to refresh
   useEffect(() => {
-    let pulling = false;
+    const THRESHOLD = 80;
+    const MAX_PULL = 120;
+
     const onTouchStart = (e: TouchEvent) => {
-      if (window.scrollY === 0) {
+      if (window.scrollY === 0 && !pullRefreshing) {
         touchStartY.current = e.touches[0].clientY;
-        pulling = true;
+        isPulling.current = true;
       }
     };
-    const onTouchEnd = (e: TouchEvent) => {
-      if (pulling && window.scrollY === 0) {
-        const diff = e.changedTouches[0].clientY - touchStartY.current;
-        if (diff > 80) {
-          setPullRefreshing(true);
-          window.location.reload();
-        }
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isPulling.current) return;
+      const diff = e.touches[0].clientY - touchStartY.current;
+      if (diff > 0) {
+        setPullDistance(Math.min(diff, MAX_PULL));
       }
-      pulling = false;
     };
+    const onTouchEnd = () => {
+      if (isPulling.current && pullDistance >= THRESHOLD && !pullRefreshing) {
+        setPullRefreshing(true);
+        setPullDistance(THRESHOLD);
+        window.dispatchEvent(new CustomEvent("pull-refresh"));
+        setTimeout(() => {
+          setPullRefreshing(false);
+          setPullDistance(0);
+        }, 1200);
+      } else {
+        setPullDistance(0);
+      }
+      isPulling.current = false;
+    };
+
     document.addEventListener("touchstart", onTouchStart, { passive: true });
+    document.addEventListener("touchmove", onTouchMove, { passive: true });
     document.addEventListener("touchend", onTouchEnd, { passive: true });
     return () => {
       document.removeEventListener("touchstart", onTouchStart);
+      document.removeEventListener("touchmove", onTouchMove);
       document.removeEventListener("touchend", onTouchEnd);
     };
-  }, []);
+  }, [pullDistance, pullRefreshing]);
 
   useEffect(() => {
     const handler = () => setProfileVersion((v) => v + 1);
@@ -147,6 +165,55 @@ export default function Layout({ children }: { children?: ReactNode }) {
         flexDirection: "column",
       }}
     >
+      {/* Pull-to-refresh indicator */}
+      {(pullDistance > 0 || pullRefreshing) && (
+        <Box
+          sx={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            display: "flex",
+            justifyContent: "center",
+            zIndex: 9999,
+            pt: "env(safe-area-inset-top)",
+          }}
+        >
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              mt: `${Math.min(pullDistance * 0.4, 32)}px`,
+              borderRadius: "50%",
+              bgcolor: "#fff",
+              boxShadow: "0 2px 12px rgba(45,106,79,0.18)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: pullRefreshing ? "none" : "margin-top 0.1s",
+            }}
+          >
+            <Box
+              component="span"
+              sx={{
+                display: "inline-block",
+                fontSize: 18,
+                animation: pullRefreshing
+                  ? "spin 0.8s linear infinite"
+                  : "none",
+                transform: `rotate(${pullDistance * 3}deg)`,
+                "@keyframes spin": {
+                  "0%": { transform: "rotate(0deg)" },
+                  "100%": { transform: "rotate(360deg)" },
+                },
+              }}
+            >
+              🌱
+            </Box>
+          </Box>
+        </Box>
+      )}
+
       <AppBar
         position="sticky"
         color="transparent"
