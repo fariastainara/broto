@@ -151,7 +151,7 @@ export default function Layout({ children }: { children?: ReactNode }) {
         position="sticky"
         color="transparent"
         elevation={0}
-        sx={{ bgcolor: palette.verde }}
+        sx={{ bgcolor: palette.verde, pt: "env(safe-area-inset-top)" }}
       >
         <Toolbar sx={{ justifyContent: "space-between" }}>
           <Box onClick={() => navigate("/")} sx={{ cursor: "pointer" }}>
