@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -104,7 +104,7 @@ export default function Dashboard() {
     { day: string; min: number }[]
   >([]);
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     if (!user) return;
     const today = dayjs().format("YYYY-MM-DD");
     const startOfDay = dayjs(today).startOf("day").toISOString();
@@ -317,6 +317,20 @@ export default function Dashboard() {
       },
     );
   }, [user]);
+
+  // Buscar dados na montagem e quando user mudar
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  // Re-buscar dados quando a PWA volta ao foco (visibilitychange)
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") fetchData();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [fetchData]);
 
   if (loading) {
     return <BrotoLoader label="Preparando seu dashboard" fullScreen={false} />;
