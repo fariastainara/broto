@@ -64,8 +64,6 @@ export default async function handler(req, res) {
   const now = new Date(
     new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })
   );
-  const hour = now.getHours();
-  const min = now.getMinutes();
   const today = now.toISOString().split("T")[0];
 
   // Buscar todos os usuários com notificações ativas
@@ -92,50 +90,26 @@ export default async function handler(req, res) {
 
   let sent = 0;
 
-  // 1. Lembrete de refeição
-  const mealReminder = shouldSendMealReminder(hour, min);
-  if (mealReminder) {
-    for (const sub of subscriptions) {
-      const ok = await sendPushToUser(sub, {
-        title: `🍽️ ${mealReminder.label}`,
-        body: `Está na hora do seu(a) ${mealReminder.label.toLowerCase()}!`,
-        tag: `meal-${mealReminder.label}`,
-      });
-      if (ok) sent++;
-    }
-  }
+  for (const sub of subscriptions) {
+    // Contar tarefas pendentes
+    const { count: taskCount } = await supabase
+      .from("tasks")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", sub.user_id)
+      .eq("status", "pendente")
+      .lte("due_date", today);
 
-  // 2. Lembrete de água (a cada hora, das 8h às 21h)
-  if (hour >= 8 && hour <= 21 && min <= 5) {
-    for (const sub of subscriptions) {
-      const ok = await sendPushToUser(sub, {
-        title: "💧 Hora de beber água!",
-        body: "Mantenha-se hidratada. Registre sua água no Broto.",
-        tag: "water-reminder",
-      });
-      if (ok) sent++;
-    }
-  }
+    const tasks = taskCount || 0;
+    const body = tasks > 0
+      ? `Você tem ${tasks} tarefa${tasks > 1 ? "s" : ""} para hoje. Bora lá! 💪`
+      : "Comece o dia registrando seu café da manhã e bebendo água! 💧";
 
-  // 3. Tarefas pendentes (às 9h e 14h)
-  if ((hour === 9 || hour === 14) && min <= 5) {
-    for (const sub of subscriptions) {
-      const { count } = await supabase
-        .from("tasks")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", sub.user_id)
-        .eq("status", "pendente")
-        .lte("due_date", today);
-
-      if (count && count > 0) {
-        const ok = await sendPushToUser(sub, {
-          title: "🌱 Tarefas pendentes",
-          body: `Você tem ${count} tarefa${count > 1 ? "s" : ""} para hoje!`,
-          tag: "tasks-reminder",
-        });
-        if (ok) sent++;
-      }
-    }
+    const ok = await sendPushToUser(sub, {
+      title: "🌱 Bom dia! Seu resumo do Broto",
+      body,
+      tag: "daily-summary",
+    });
+    if (ok) sent++;
   }
 
   return res.json({ sent, time: `${hour}:${min}`, today });
