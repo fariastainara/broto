@@ -10,6 +10,42 @@ export default defineConfig({
       includeAssets: ["favicon.svg"],
       workbox: {
         importScripts: ["/sw-push.js"],
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
+        navigateFallback: "index.html",
+        runtimeCaching: [
+          {
+            // Nunca cachear chamadas ao Supabase (API / Auth / Realtime)
+            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            handler: "NetworkOnly",
+          },
+          {
+            // Nunca cachear chamadas à API local (serverless functions)
+            urlPattern: /^\/api\/.*/i,
+            handler: "NetworkOnly",
+          },
+          {
+            // Google Fonts stylesheets — stale-while-revalidate
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "google-fonts-stylesheets",
+            },
+          },
+          {
+            // Google Fonts arquivos de fonte — cache first (imutáveis)
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "google-fonts-webfonts",
+              expiration: {
+                maxEntries: 30,
+                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 ano
+              },
+            },
+          },
+        ],
       },
       manifest: {
         name: "Broto",
