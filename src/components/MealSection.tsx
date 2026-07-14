@@ -846,11 +846,38 @@ export default function MealSection({
                         </Typography>
                         {option.description && (
                           <Typography
+                            component="span"
                             fontSize={12}
                             color="text.secondary"
-                            sx={{ whiteSpace: "pre-line" }}
+                            sx={{ whiteSpace: "pre-line", display: "block" }}
                           >
-                            {option.description}
+                            {option.description
+                              .split(
+                                /(\d+\s*(?:ml|l|g|kg|mg|kcal|cal|un|oz|lb|xícaras?|colheres?|fatias?|pedaços?|porç(?:ão|ões)|ovos?))/gi,
+                              )
+                              .map((part, i) =>
+                                /\d+\s*(?:ml|l|g|kg|mg|kcal|cal|un|oz|lb|xícaras?|colheres?|fatias?|pedaços?|porç(?:ão|ões)|ovos?)/i.test(
+                                  part,
+                                ) ? (
+                                  <Box
+                                    key={i}
+                                    component="span"
+                                    sx={{
+                                      bgcolor: "#FFF3E0",
+                                      color: "#E65100",
+                                      fontWeight: 600,
+                                      borderRadius: "4px",
+                                      px: 0.5,
+                                      py: 0.1,
+                                      fontSize: 11,
+                                    }}
+                                  >
+                                    {part}
+                                  </Box>
+                                ) : (
+                                  part
+                                ),
+                              )}
                           </Typography>
                         )}
                       </Box>

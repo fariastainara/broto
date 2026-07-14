@@ -266,15 +266,43 @@ export default function MealPlanCard({ userId }: MealPlanCardProps) {
                       </Typography>
                       {option.description && (
                         <Typography
+                          component="span"
                           fontSize={12.5}
                           color="text.secondary"
                           sx={{
                             mt: 0.3,
                             lineHeight: 1.5,
                             whiteSpace: "pre-line",
+                            display: "block",
                           }}
                         >
-                          {option.description}
+                          {option.description
+                            .split(
+                              /(\d+\s*(?:ml|l|g|kg|mg|kcal|cal|un|oz|lb|xícaras?|colheres?|fatias?|pedaços?|porç(?:ão|ões)|ovos?))/gi,
+                            )
+                            .map((part, i) =>
+                              /\d+\s*(?:ml|l|g|kg|mg|kcal|cal|un|oz|lb|xícaras?|colheres?|fatias?|pedaços?|porç(?:ão|ões)|ovos?)/i.test(
+                                part,
+                              ) ? (
+                                <Box
+                                  key={i}
+                                  component="span"
+                                  sx={{
+                                    bgcolor: "#FFF3E0",
+                                    color: "#E65100",
+                                    fontWeight: 600,
+                                    borderRadius: "4px",
+                                    px: 0.5,
+                                    py: 0.1,
+                                    fontSize: 11,
+                                  }}
+                                >
+                                  {part}
+                                </Box>
+                              ) : (
+                                part
+                              ),
+                            )}
                         </Typography>
                       )}
                     </Box>

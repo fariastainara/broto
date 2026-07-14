@@ -30,6 +30,7 @@ import Logo from "./Logo";
 import { useAuth } from "../contexts/AuthContext";
 import { palette } from "../theme";
 import { supabase } from "../lib/supabaseClient";
+import { useNotifications } from "../lib/useNotifications";
 import type { Profile } from "../types";
 
 const NAV_ITEMS = [
@@ -49,7 +50,30 @@ export default function Layout({ children }: { children?: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileVersion, setProfileVersion] = useState(0);
   const [pullRefreshing, setPullRefreshing] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const touchStartY = useRef(0);
+
+  // Carregar preferência de notificações
+  useEffect(() => {
+    if (!user) return;
+    const loadNotifPref = () => {
+      supabase
+        .from("user_settings")
+        .select("notifications_enabled")
+        .eq("id", user.id)
+        .single()
+        .then(({ data }) => {
+          if (data) setNotificationsEnabled(data.notifications_enabled);
+        });
+    };
+    loadNotifPref();
+    window.addEventListener("notifications-changed", loadNotifPref);
+    return () =>
+      window.removeEventListener("notifications-changed", loadNotifPref);
+  }, [user]);
+
+  // Ativar notificações
+  useNotifications(user?.id, notificationsEnabled);
 
   // Pull to refresh
   useEffect(() => {

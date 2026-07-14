@@ -12,6 +12,10 @@ import { Settings, Bell } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../contexts/AuthContext";
 import { palette } from "../theme";
+import {
+  requestPermission,
+  getPermissionStatus,
+} from "../lib/useNotifications";
 import type { UserSettings } from "../types";
 
 export default function SettingsPage() {
@@ -86,13 +90,26 @@ export default function SettingsPage() {
                 <Box>
                   <Typography fontWeight={600}>Notificações</Typography>
                   <Typography fontSize={13} color="text.secondary">
-                    Lembretes de água, refeições e tarefas
+                    {getPermissionStatus() === "denied"
+                      ? "Bloqueadas pelo navegador — ative nas configurações do dispositivo"
+                      : "Lembretes de água, refeições e tarefas"}
                   </Typography>
                 </Box>
               </Stack>
               <Switch
                 checked={notifications}
-                onChange={(e) => setNotifications(e.target.checked)}
+                disabled={getPermissionStatus() === "denied"}
+                onChange={async (e) => {
+                  let value = e.target.checked;
+                  if (value && getPermissionStatus() !== "granted") {
+                    const perm = await requestPermission();
+                    if (perm !== "granted") {
+                      value = false;
+                    }
+                  }
+                  setNotifications(value);
+                  window.dispatchEvent(new Event("notifications-changed"));
+                }}
                 sx={{
                   "& .MuiSwitch-switchBase.Mui-checked": {
                     color: palette.verde,

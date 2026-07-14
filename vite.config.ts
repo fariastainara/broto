@@ -8,6 +8,9 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg"],
+      workbox: {
+        importScripts: ["/sw-push.js"],
+      },
       manifest: {
         name: "Broto",
         short_name: "Broto",

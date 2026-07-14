@@ -23,6 +23,10 @@ import { Camera, Sprout, Trash2, Bell, UserCircle } from "lucide-react";
 import { supabase } from "../lib/supabaseClient";
 import { useAuth } from "../contexts/AuthContext";
 import { palette } from "../theme";
+import {
+  requestPermission,
+  getPermissionStatus,
+} from "../lib/useNotifications";
 import type { Profile, UserSettings } from "../types";
 
 async function getCroppedImg(imageSrc: string, crop: Area): Promise<Blob> {
@@ -439,20 +443,30 @@ export default function ProfilePage() {
               <Box>
                 <Typography fontWeight={600}>Notificações</Typography>
                 <Typography fontSize={13} color="text.secondary">
-                  Lembretes de água, refeições e tarefas
+                  {getPermissionStatus() === "denied"
+                    ? "Bloqueadas pelo navegador — ative nas configurações do dispositivo"
+                    : "Lembretes de água, refeições e tarefas"}
                 </Typography>
               </Box>
             </Stack>
             <Switch
               checked={notifications}
+              disabled={getPermissionStatus() === "denied"}
               onChange={async (e) => {
-                const value = e.target.checked;
+                let value = e.target.checked;
+                if (value && getPermissionStatus() !== "granted") {
+                  const perm = await requestPermission();
+                  if (perm !== "granted") {
+                    value = false;
+                  }
+                }
                 setNotifications(value);
                 if (user) {
                   await supabase.from("user_settings").upsert({
                     id: user.id,
                     notifications_enabled: value,
                   });
+                  window.dispatchEvent(new Event("notifications-changed"));
                 }
               }}
               sx={{
