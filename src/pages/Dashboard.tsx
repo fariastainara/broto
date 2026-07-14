@@ -69,13 +69,16 @@ import type {
 
 dayjs.locale("pt-br");
 
-const WATER_GOAL_ML = 2800;
+const DEFAULT_WATER_GOAL = 2800;
+const DEFAULT_SLEEP_GOAL = 8;
 
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [waterGoal, setWaterGoal] = useState(DEFAULT_WATER_GOAL);
+  const [sleepGoal, setSleepGoal] = useState(DEFAULT_SLEEP_GOAL);
   const [waterToday, setWaterToday] = useState(0);
   const [waterWeek, setWaterWeek] = useState<{ day: string; ml: number }[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -186,6 +189,11 @@ export default function Dashboard() {
         .select("*")
         .eq("user_id", user.id)
         .gte("logged_at", dayjs(weekStart).startOf("day").toISOString()),
+      supabase
+        .from("user_settings")
+        .select("water_goal_ml, sleep_goal_hours")
+        .eq("id", user.id)
+        .maybeSingle(),
     ]).then(
       // @ts-ignore - more than 16 promises
       ([
@@ -206,8 +214,14 @@ export default function Dashboard() {
         sleepWeekRes,
         mealsRes,
         exercisesRes,
+        settingsRes,
       ]) => {
         if (profileRes.data) setProfile(profileRes.data as Profile);
+
+        if (settingsRes.data) {
+          if (settingsRes.data.water_goal_ml) setWaterGoal(settingsRes.data.water_goal_ml);
+          if (settingsRes.data.sleep_goal_hours) setSleepGoal(settingsRes.data.sleep_goal_hours);
+        }
 
         const todayWater = ((waterTodayRes.data ?? []) as WaterLog[]).reduce(
           (acc, w) => acc + w.amount_ml,
@@ -308,7 +322,7 @@ export default function Dashboard() {
 
   const waterPct = Math.min(
     100,
-    Math.round((waterToday / WATER_GOAL_ML) * 100),
+    Math.round((waterToday / waterGoal) * 100),
   );
   const todayStr = dayjs().format("YYYY-MM-DD");
   const latestWeight =
@@ -550,7 +564,7 @@ export default function Dashboard() {
               <Box sx={{ flex: 1 }}>
                 <Typography fontWeight={600}>Hidratação</Typography>
                 <Typography fontSize={13} color="text.secondary">
-                  {waterToday}ml de {WATER_GOAL_ML}ml
+                  {waterToday}ml de {waterGoal}ml
                 </Typography>
               </Box>
               <Typography fontSize={14} fontWeight={700} color={palette.verde}>
