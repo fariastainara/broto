@@ -9,6 +9,7 @@ import {
   Alert,
   Stack,
   Link as MLink,
+  CircularProgress,
 } from "@mui/material";
 import Logo from "../components/Logo";
 import { useAuth } from "../contexts/AuthContext";
@@ -39,10 +40,7 @@ export default function Login() {
       const { error } = await signUp(email, password);
       setBusy(false);
       if (error) setError(error);
-      else
-        setInfo(
-          "Conta criada! Verifique seu e-mail para confirmar o cadastro e depois faça login.",
-        );
+      else navigate("/");
     }
   }
 
@@ -93,7 +91,13 @@ export default function Login() {
               disabled={busy}
               fullWidth
             >
-              {mode === "entrar" ? "Entrar" : "Criar conta"}
+              {busy ? (
+                <CircularProgress size={24} sx={{ color: "white" }} />
+              ) : mode === "entrar" ? (
+                "Entrar"
+              ) : (
+                "Criar conta"
+              )}
             </Button>
           </Stack>
         </form>

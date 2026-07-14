@@ -14,14 +14,13 @@ export default function BrotoLoader({
   return (
     <Box
       sx={{
-        minHeight: fullScreen ? "100vh" : "auto",
+        minHeight: fullScreen ? "100vh" : "60vh",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
         gap: 2,
         bgcolor: fullScreen ? palette.creme : "transparent",
-        py: fullScreen ? 0 : 8,
       }}
     >
       <svg width="76" height="76" viewBox="0 0 64 64">
