@@ -20,6 +20,7 @@ import {
   LinearProgress,
   Divider,
   Menu,
+  CircularProgress,
 } from "@mui/material";
 import {
   BookOpen,
@@ -116,6 +117,7 @@ export default function Studies() {
     null,
   );
   const [elapsed, setElapsed] = useState("");
+  const [actionBusy, setActionBusy] = useState(false);
 
   const [sessionDialog, setSessionDialog] = useState(false);
   const [freeSession, setFreeSession] = useState(false);
@@ -237,6 +239,7 @@ export default function Studies() {
 
   async function handleCreateCourse() {
     if (!user || !newCourse.title.trim()) return;
+    setActionBusy(true);
     await supabase.from("courses").insert({
       user_id: user.id,
       title: newCourse.title.trim(),
@@ -247,6 +250,7 @@ export default function Studies() {
       category: newCourse.category || null,
       status: newCourse.status,
     });
+    setActionBusy(false);
     setNewCourse({
       title: "",
       description: "",
@@ -281,12 +285,14 @@ export default function Studies() {
 
   async function handleAddModule(courseId: string) {
     if (!newModuleTitle.trim()) return;
+    setActionBusy(true);
     const courseMods = modules.filter((m) => m.course_id === courseId);
     await supabase.from("course_modules").insert({
       course_id: courseId,
       title: newModuleTitle.trim(),
       sort_order: courseMods.length + 1,
     });
+    setActionBusy(false);
     setNewModuleTitle("");
     setAddingModuleCourse(null);
     loadCourses();
@@ -299,6 +305,7 @@ export default function Studies() {
 
   async function handleAddLesson(moduleId: string) {
     if (!newLessonTitle.trim()) return;
+    setActionBusy(true);
     const modLessons = lessons.filter((l) => l.module_id === moduleId);
     await supabase.from("course_lessons").insert({
       module_id: moduleId,
@@ -307,6 +314,7 @@ export default function Studies() {
       completed: false,
       sort_order: modLessons.length + 1,
     });
+    setActionBusy(false);
     setNewLessonTitle("");
     setNewLessonDuration("");
     setAddingLessonModule(null);
@@ -328,6 +336,7 @@ export default function Studies() {
 
   async function handleCreateSession() {
     if (!user) return;
+    setActionBusy(true);
     let startedAt = dayjs(newSession.started_at);
     let endedAt = dayjs(newSession.ended_at);
     if (endedAt.isBefore(startedAt) || endedAt.isSame(startedAt)) {
@@ -340,6 +349,7 @@ export default function Studies() {
       ended_at: endedAt.toISOString(),
       notes: newSession.notes || null,
     });
+    setActionBusy(false);
     setNewSession({
       course_id: "",
       started_at: dayjs().format("YYYY-MM-DDTHH:mm"),
@@ -367,6 +377,7 @@ export default function Studies() {
 
   async function handleStopTimer() {
     if (!user || !activeSession) return;
+    setActionBusy(true);
     await supabase.from("study_sessions").insert({
       user_id: user.id,
       course_id: activeSession.course_id,
@@ -374,6 +385,7 @@ export default function Studies() {
       ended_at: dayjs().toISOString(),
       notes: null,
     });
+    setActionBusy(false);
     setActiveSession(null);
     localStorage.removeItem("broto_active_study_session");
     loadSessions();
@@ -526,8 +538,9 @@ export default function Studies() {
               <Button
                 variant="contained"
                 size="small"
-                startIcon={<Square size={13} />}
+                startIcon={!actionBusy ? <Square size={13} /> : undefined}
                 onClick={handleStopTimer}
+                disabled={actionBusy}
                 sx={{
                   bgcolor: palette.laranja,
                   "&:hover": {
@@ -537,7 +550,11 @@ export default function Studies() {
                   flexShrink: 0,
                 }}
               >
-                Parar
+                {actionBusy ? (
+                  <CircularProgress size={20} sx={{ color: "white" }} />
+                ) : (
+                  "Parar"
+                )}
               </Button>
             </Stack>
           </CardContent>
@@ -1055,9 +1072,17 @@ export default function Studies() {
                                           onClick={() =>
                                             handleAddLesson(mod.id)
                                           }
+                                          disabled={actionBusy}
                                           sx={{ borderRadius: 2 }}
                                         >
-                                          OK
+                                          {actionBusy ? (
+                                            <CircularProgress
+                                              size={20}
+                                              sx={{ color: "white" }}
+                                            />
+                                          ) : (
+                                            "OK"
+                                          )}
                                         </Button>
                                         <Button
                                           size="small"
@@ -1108,9 +1133,17 @@ export default function Studies() {
                                 size="small"
                                 variant="contained"
                                 onClick={() => handleAddModule(course.id)}
+                                disabled={actionBusy}
                                 sx={{ borderRadius: 2 }}
                               >
-                                OK
+                                {actionBusy ? (
+                                  <CircularProgress
+                                    size={20}
+                                    sx={{ color: "white" }}
+                                  />
+                                ) : (
+                                  "OK"
+                                )}
                               </Button>
                               <Button
                                 size="small"
@@ -1309,10 +1342,14 @@ export default function Studies() {
           <Button
             variant="contained"
             onClick={handleCreateCourse}
-            disabled={!newCourse.title.trim()}
+            disabled={!newCourse.title.trim() || actionBusy}
             sx={{ borderRadius: 2, px: 3 }}
           >
-            Adicionar curso
+            {actionBusy ? (
+              <CircularProgress size={20} sx={{ color: "white" }} />
+            ) : (
+              "Adicionar curso"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1447,9 +1484,14 @@ export default function Studies() {
           <Button
             variant="contained"
             onClick={handleCreateSession}
+            disabled={actionBusy}
             sx={{ borderRadius: 2, px: 3 }}
           >
-            Salvar
+            {actionBusy ? (
+              <CircularProgress size={20} sx={{ color: "white" }} />
+            ) : (
+              "Salvar"
+            )}
           </Button>
         </DialogActions>
       </Dialog>

@@ -567,8 +567,13 @@ export default function ProfilePage() {
             >
               Cancelar
             </Button>
-            <Button onClick={handleCropConfirm} fullWidth variant="contained">
-              Confirmar
+            <Button
+              onClick={handleCropConfirm}
+              fullWidth
+              variant="contained"
+              disabled={uploading}
+            >
+              {uploading ? "Salvando..." : "Confirmar"}
             </Button>
           </Stack>
         </DialogActions>

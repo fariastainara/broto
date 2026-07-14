@@ -18,6 +18,7 @@ import {
   DialogActions,
   Checkbox,
   FormControlLabel,
+  CircularProgress,
 } from "@mui/material";
 import {
   Droplets,
@@ -169,6 +170,7 @@ export default function Diary() {
     "water",
   );
   const [goalDialogValue, setGoalDialogValue] = useState("");
+  const [actionBusy, setActionBusy] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -316,6 +318,7 @@ export default function Diary() {
   // --- Exercícios ---
   async function addExercise() {
     if (!user || !exType || !exDuration) return;
+    setActionBusy(true);
     await supabase.from("exercises").insert({
       user_id: user.id,
       exercise_type: exType,
@@ -328,6 +331,7 @@ export default function Diary() {
     setExCalories("");
     setExNotes("");
     setExType("");
+    setActionBusy(false);
     loadData();
   }
 
@@ -339,6 +343,7 @@ export default function Diary() {
   // --- Sono ---
   async function saveSleep() {
     if (!user || !sleptAt || !wokeAt) return;
+    setActionBusy(true);
     const sleptDate = dayjs(`${today} ${sleptAt}`);
     const wokeDate = dayjs(`${today} ${wokeAt}`);
 
@@ -358,6 +363,7 @@ export default function Diary() {
         logged_date: today,
       });
     }
+    setActionBusy(false);
     loadData();
   }
 
@@ -375,6 +381,7 @@ export default function Diary() {
   // --- Peso ---
   async function addWeight() {
     if (!user || !weightVal) return;
+    setActionBusy(true);
     const existing = weights.find((w) => w.logged_date === today);
     if (existing) {
       await supabase
@@ -389,6 +396,7 @@ export default function Diary() {
       });
     }
     setWeightVal("");
+    setActionBusy(false);
     loadData();
   }
 
@@ -416,11 +424,13 @@ export default function Diary() {
   // --- Hábitos ---
   async function createHabit() {
     if (!user || !newHabitTitle.trim()) return;
+    setActionBusy(true);
     await supabase
       .from("habits")
       .insert({ user_id: user.id, title: newHabitTitle.trim() });
     setNewHabitTitle("");
     setHabitDialogOpen(false);
+    setActionBusy(false);
     loadData();
   }
 
@@ -468,6 +478,7 @@ export default function Diary() {
   // --- Metas ---
   async function saveGoal() {
     if (!user) return;
+    setActionBusy(true);
     const updates =
       goalDialogType === "water"
         ? { water_goal_ml: parseInt(goalDialogValue) || DEFAULT_WATER_GOAL }
@@ -482,6 +493,7 @@ export default function Diary() {
     } else {
       setSleepGoal(updates.sleep_goal_hours ?? sleepGoal);
     }
+    setActionBusy(false);
     setGoalDialogOpen(false);
   }
 
@@ -911,10 +923,14 @@ export default function Diary() {
                     saveSleep();
                     setEditingSleep(false);
                   }}
-                  disabled={!sleptAt || !wokeAt}
+                  disabled={!sleptAt || !wokeAt || actionBusy}
                   fullWidth
                 >
-                  {sleepLog ? "Atualizar" : "Registrar"} sono
+                  {actionBusy ? (
+                    <CircularProgress size={20} sx={{ color: "white" }} />
+                  ) : (
+                    (sleepLog ? "Atualizar" : "Registrar") + " sono"
+                  )}
                 </Button>
               </Stack>
             )}
@@ -1005,9 +1021,15 @@ export default function Diary() {
                     <Button
                       variant="contained"
                       onClick={addWeight}
-                      disabled={!weightVal}
+                      disabled={!weightVal || actionBusy}
                     >
-                      {todayWeight ? "Atualizar" : "Registrar"}
+                      {actionBusy ? (
+                        <CircularProgress size={20} sx={{ color: "white" }} />
+                      ) : todayWeight ? (
+                        "Atualizar"
+                      ) : (
+                        "Registrar"
+                      )}
                     </Button>
                   </Stack>
 
@@ -1398,10 +1420,14 @@ export default function Diary() {
               addExercise();
               setExerciseDialogOpen(false);
             }}
-            disabled={!exType || !exDuration}
+            disabled={!exType || !exDuration || actionBusy}
             sx={{ borderRadius: 2, px: 3 }}
           >
-            Adicionar
+            {actionBusy ? (
+              <CircularProgress size={20} sx={{ color: "white" }} />
+            ) : (
+              "Adicionar"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1461,10 +1487,14 @@ export default function Diary() {
           <Button
             variant="contained"
             onClick={createHabit}
-            disabled={!newHabitTitle.trim()}
+            disabled={!newHabitTitle.trim() || actionBusy}
             sx={{ borderRadius: 2, px: 3 }}
           >
-            Criar hábito
+            {actionBusy ? (
+              <CircularProgress size={20} sx={{ color: "white" }} />
+            ) : (
+              "Criar hábito"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1539,10 +1569,14 @@ export default function Diary() {
           <Button
             variant="contained"
             onClick={saveGoal}
-            disabled={!goalDialogValue}
+            disabled={!goalDialogValue || actionBusy}
             sx={{ borderRadius: 2, px: 3 }}
           >
-            Salvar
+            {actionBusy ? (
+              <CircularProgress size={20} sx={{ color: "white" }} />
+            ) : (
+              "Salvar"
+            )}
           </Button>
         </DialogActions>
       </Dialog>

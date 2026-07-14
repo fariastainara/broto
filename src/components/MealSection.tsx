@@ -80,6 +80,7 @@ export default function MealSection({
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareEmail, setShareEmail] = useState("");
   const [shareLoading, setShareLoading] = useState(false);
+  const [actionBusy, setActionBusy] = useState(false);
   const [shareMsg, setShareMsg] = useState<{
     type: "success" | "error";
     text: string;
@@ -160,6 +161,7 @@ export default function MealSection({
 
   const addMealFree = async () => {
     if (!mealDesc.trim() || !mealType) return;
+    setActionBusy(true);
     await supabase.from("meal_logs").insert({
       user_id: userId,
       meal_type: mealType,
@@ -170,6 +172,7 @@ export default function MealSection({
     setMealDesc("");
     setMealCal("");
     setMealModalOpen(false);
+    setActionBusy(false);
     onDataChange();
   };
 
@@ -180,6 +183,7 @@ export default function MealSection({
 
   const addPlanOption = async () => {
     if (!newOptionTitle.trim() || !manageMealType) return;
+    setActionBusy(true);
     const maxOrder =
       managedOptions.length > 0
         ? Math.max(...managedOptions.map((o) => o.sort_order))
@@ -195,6 +199,7 @@ export default function MealSection({
     setNewOptionTitle("");
     setNewOptionDesc("");
     setNewOptionCal("");
+    setActionBusy(false);
     loadPlanOptions();
   };
 
@@ -727,9 +732,9 @@ export default function MealSection({
             <Button
               variant="contained"
               onClick={addMealFree}
-              disabled={!mealDesc.trim() || !mealType}
+              disabled={!mealDesc.trim() || !mealType || actionBusy}
             >
-              Adicionar
+              {actionBusy ? "Salvando..." : "Adicionar"}
             </Button>
           </DialogActions>
         )}
@@ -822,10 +827,10 @@ export default function MealSection({
             <Button
               variant="contained"
               onClick={addPlanOption}
-              disabled={!newOptionTitle.trim()}
+              disabled={!newOptionTitle.trim() || actionBusy}
               startIcon={<Plus size={16} />}
             >
-              Adicionar opção
+              {actionBusy ? "Salvando..." : "Adicionar opção"}
             </Button>
 
             {managedOptions.length > 0 && (

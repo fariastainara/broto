@@ -14,6 +14,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  CircularProgress,
 } from "@mui/material";
 import { Plus, Trash2, ListChecks, CheckSquare } from "lucide-react";
 import dayjs from "dayjs";
@@ -47,6 +48,7 @@ export default function Tasks() {
   const [addingToList, setAddingToList] = useState<string | null>(null);
   const [newItemTitle, setNewItemTitle] = useState("");
   const [emptyLists, setEmptyLists] = useState<string[]>([]);
+  const [actionBusy, setActionBusy] = useState(false);
 
   async function loadTasks() {
     if (!user) return;
@@ -93,6 +95,7 @@ export default function Tasks() {
 
   async function addItem(listName: string) {
     if (!user || !newItemTitle.trim()) return;
+    setActionBusy(true);
     await supabase.from("tasks").insert({
       user_id: user.id,
       title: newItemTitle.trim(),
@@ -101,6 +104,7 @@ export default function Tasks() {
       status: "pendente",
     });
     setNewItemTitle("");
+    setActionBusy(false);
     loadTasks();
   }
 
@@ -326,10 +330,17 @@ export default function Tasks() {
                             size="small"
                             variant="contained"
                             onClick={() => addItem(listName)}
-                            disabled={!newItemTitle.trim()}
+                            disabled={!newItemTitle.trim() || actionBusy}
                             sx={{ borderRadius: 2 }}
                           >
-                            OK
+                            {actionBusy ? (
+                              <CircularProgress
+                                size={16}
+                                sx={{ color: "white" }}
+                              />
+                            ) : (
+                              "OK"
+                            )}
                           </Button>
                           <Button
                             size="small"

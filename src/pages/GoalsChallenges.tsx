@@ -15,6 +15,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  CircularProgress,
 } from "@mui/material";
 import {
   Target,
@@ -51,6 +52,7 @@ export default function GoalsChallenges() {
   const [challengeDialog, setChallengeDialog] = useState(false);
   const [chTitle, setChTitle] = useState("");
   const [chDays, setChDays] = useState("21");
+  const [actionBusy, setActionBusy] = useState(false);
 
   async function loadAll() {
     if (!user) return;
@@ -79,6 +81,7 @@ export default function GoalsChallenges() {
 
   async function addGoal() {
     if (!user || !goalTitle.trim()) return;
+    setActionBusy(true);
     await supabase.from("goals").insert({
       user_id: user.id,
       title: goalTitle.trim(),
@@ -88,6 +91,7 @@ export default function GoalsChallenges() {
     setGoalTitle("");
     setGoalDate("");
     setGoalDialog(false);
+    setActionBusy(false);
     loadAll();
   }
 
@@ -106,6 +110,7 @@ export default function GoalsChallenges() {
 
   async function addChallenge() {
     if (!user || !chTitle.trim()) return;
+    setActionBusy(true);
     const start = dayjs().format("YYYY-MM-DD");
     const end = dayjs().add(Number(chDays), "day").format("YYYY-MM-DD");
     await supabase.from("challenges").insert({
@@ -118,6 +123,7 @@ export default function GoalsChallenges() {
     setChTitle("");
     setChDays("21");
     setChallengeDialog(false);
+    setActionBusy(false);
     loadAll();
   }
 
@@ -570,10 +576,14 @@ export default function GoalsChallenges() {
           <Button
             variant="contained"
             onClick={addGoal}
-            disabled={!goalTitle.trim()}
+            disabled={!goalTitle.trim() || actionBusy}
             sx={{ borderRadius: 2, px: 3 }}
           >
-            Criar meta
+            {actionBusy ? (
+              <CircularProgress size={20} sx={{ color: "white" }} />
+            ) : (
+              "Criar meta"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
@@ -641,10 +651,14 @@ export default function GoalsChallenges() {
           <Button
             variant="contained"
             onClick={addChallenge}
-            disabled={!chTitle.trim()}
+            disabled={!chTitle.trim() || actionBusy}
             sx={{ borderRadius: 2, px: 3 }}
           >
-            Criar desafio
+            {actionBusy ? (
+              <CircularProgress size={20} sx={{ color: "white" }} />
+            ) : (
+              "Criar desafio"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
