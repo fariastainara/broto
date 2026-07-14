@@ -219,8 +219,10 @@ export default function Dashboard() {
         if (profileRes.data) setProfile(profileRes.data as Profile);
 
         if (settingsRes.data) {
-          if (settingsRes.data.water_goal_ml) setWaterGoal(settingsRes.data.water_goal_ml);
-          if (settingsRes.data.sleep_goal_hours) setSleepGoal(settingsRes.data.sleep_goal_hours);
+          if (settingsRes.data.water_goal_ml)
+            setWaterGoal(settingsRes.data.water_goal_ml);
+          if (settingsRes.data.sleep_goal_hours)
+            setSleepGoal(settingsRes.data.sleep_goal_hours);
         }
 
         const todayWater = ((waterTodayRes.data ?? []) as WaterLog[]).reduce(
@@ -320,10 +322,7 @@ export default function Dashboard() {
     return <BrotoLoader label="Preparando seu dashboard" fullScreen={false} />;
   }
 
-  const waterPct = Math.min(
-    100,
-    Math.round((waterToday / waterGoal) * 100),
-  );
+  const waterPct = Math.min(100, Math.round((waterToday / waterGoal) * 100));
   const todayStr = dayjs().format("YYYY-MM-DD");
   const latestWeight =
     weights.length > 0 ? weights[weights.length - 1].weight_kg : null;

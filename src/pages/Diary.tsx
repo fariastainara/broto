@@ -1135,9 +1135,8 @@ export default function Diary() {
 
             <Stack
               direction="row"
-              spacing={1.5}
-              justifyContent="flex-start"
-              flexWrap="wrap"
+              spacing={0}
+              justifyContent="space-between"
               sx={{ mt: 2, pl: 6 }}
             >
               {(
@@ -1157,7 +1156,8 @@ export default function Diary() {
                       alignItems: "center",
                       gap: 0.7,
                       cursor: "pointer",
-                      width: 64,
+                      flex: 1,
+                      minWidth: 0,
                     }}
                   >
                     <motion.div
