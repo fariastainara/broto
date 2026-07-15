@@ -162,6 +162,8 @@ export default function Diary() {
   const [habitLogs, setHabitLogs] = useState<HabitLog[]>([]);
   const [habitDialogOpen, setHabitDialogOpen] = useState(false);
   const [newHabitTitle, setNewHabitTitle] = useState("");
+  const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
+  const [editingHabitTitle, setEditingHabitTitle] = useState("");
 
   const [waterGoal, setWaterGoal] = useState(DEFAULT_WATER_GOAL);
   const [sleepGoal, setSleepGoal] = useState(DEFAULT_SLEEP_GOAL);
@@ -452,6 +454,14 @@ export default function Diary() {
   async function removeHabit(id: string) {
     await supabase.from("habit_logs").delete().eq("habit_id", id);
     await supabase.from("habits").delete().eq("id", id);
+    loadData();
+  }
+
+  async function saveEditHabit(id: string) {
+    if (!editingHabitTitle.trim()) return;
+    await supabase.from("habits").update({ title: editingHabitTitle.trim() }).eq("id", id);
+    setEditingHabitId(null);
+    setEditingHabitTitle("");
     loadData();
   }
 
@@ -1280,17 +1290,37 @@ export default function Diary() {
                           />
                         }
                         label={
-                          <Typography
-                            fontSize={14}
-                            sx={{
-                              textDecoration: checkedToday
-                                ? "line-through"
-                                : "none",
-                            }}
-                          >
-                            {h.icon ? `${h.icon} ` : ""}
-                            {h.title}
-                          </Typography>
+                          editingHabitId === h.id ? (
+                            <TextField
+                              size="small"
+                              value={editingHabitTitle}
+                              onChange={(e) => setEditingHabitTitle(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") saveEditHabit(h.id);
+                                if (e.key === "Escape") setEditingHabitId(null);
+                              }}
+                              onBlur={() => saveEditHabit(h.id)}
+                              autoFocus
+                              inputProps={{ style: { fontSize: 14 } }}
+                            />
+                          ) : (
+                            <Typography
+                              fontSize={14}
+                              onClick={() => {
+                                setEditingHabitId(h.id);
+                                setEditingHabitTitle(h.title);
+                              }}
+                              sx={{
+                                textDecoration: checkedToday
+                                  ? "line-through"
+                                  : "none",
+                                cursor: "pointer",
+                              }}
+                            >
+                              {h.icon ? `${h.icon} ` : ""}
+                              {h.title}
+                            </Typography>
+                          )
                         }
                         sx={{ flex: 1 }}
                       />

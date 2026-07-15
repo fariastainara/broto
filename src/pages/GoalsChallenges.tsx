@@ -24,6 +24,7 @@ import {
   Trash2,
   CheckCircle2,
   Circle,
+  Pencil,
 } from "lucide-react";
 import dayjs from "dayjs";
 import "dayjs/locale/pt-br";
@@ -53,6 +54,14 @@ export default function GoalsChallenges() {
   const [chTitle, setChTitle] = useState("");
   const [chDays, setChDays] = useState("21");
   const [actionBusy, setActionBusy] = useState(false);
+
+  const [editGoalDialog, setEditGoalDialog] = useState(false);
+  const [editGoalId, setEditGoalId] = useState<string | null>(null);
+  const [editGoalTitle, setEditGoalTitle] = useState("");
+  const [editGoalDate, setEditGoalDate] = useState("");
+
+  const [editChallengeId, setEditChallengeId] = useState<string | null>(null);
+  const [editChallengeTitle, setEditChallengeTitle] = useState("");
 
   async function loadAll() {
     if (!user) return;
@@ -147,6 +156,33 @@ export default function GoalsChallenges() {
 
   async function removeChallenge(id: string) {
     await supabase.from("challenges").delete().eq("id", id);
+    loadAll();
+  }
+
+  async function saveEditGoal() {
+    if (!editGoalId || !editGoalTitle.trim()) return;
+    setActionBusy(true);
+    await supabase
+      .from("goals")
+      .update({
+        title: editGoalTitle.trim(),
+        target_date: editGoalDate || null,
+      })
+      .eq("id", editGoalId);
+    setEditGoalDialog(false);
+    setEditGoalId(null);
+    setActionBusy(false);
+    loadAll();
+  }
+
+  async function saveEditChallenge(id: string) {
+    if (!editChallengeTitle.trim()) return;
+    await supabase
+      .from("challenges")
+      .update({ title: editChallengeTitle.trim() })
+      .eq("id", id);
+    setEditChallengeId(null);
+    setEditChallengeTitle("");
     loadAll();
   }
 
@@ -334,6 +370,17 @@ export default function GoalsChallenges() {
                           </Typography>
                         )}
                       </Box>
+                      <IconButton
+                        size="small"
+                        onClick={() => {
+                          setEditGoalId(g.id);
+                          setEditGoalTitle(g.title);
+                          setEditGoalDate(g.target_date || "");
+                          setEditGoalDialog(true);
+                        }}
+                      >
+                        <Pencil size={14} color={palette.cinza} />
+                      </IconButton>
                       <IconButton size="small" onClick={() => removeGoal(g.id)}>
                         <Trash2 size={15} color={palette.cinza} />
                       </IconButton>
@@ -450,13 +497,39 @@ export default function GoalsChallenges() {
                     <Stack key={c.id} gap={1} sx={{ py: 1.5 }}>
                       <Stack direction="row" alignItems="center" spacing={1}>
                         <Box sx={{ flex: 1 }}>
-                          <Typography fontWeight={600} fontSize={14}>
-                            {c.title}
-                          </Typography>
-                          <Typography fontSize={12} color="text.secondary">
-                            {totalDone}/{c.target_count} dias · até{" "}
-                            {dayjs(c.end_date).format("DD/MM")}
-                          </Typography>
+                          {editChallengeId === c.id ? (
+                            <TextField
+                              size="small"
+                              value={editChallengeTitle}
+                              onChange={(e) => setEditChallengeTitle(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") saveEditChallenge(c.id);
+                                if (e.key === "Escape") setEditChallengeId(null);
+                              }}
+                              onBlur={() => saveEditChallenge(c.id)}
+                              autoFocus
+                              fullWidth
+                              inputProps={{ style: { fontSize: 14, fontWeight: 600 } }}
+                            />
+                          ) : (
+                            <>
+                              <Typography
+                                fontWeight={600}
+                                fontSize={14}
+                                onClick={() => {
+                                  setEditChallengeId(c.id);
+                                  setEditChallengeTitle(c.title);
+                                }}
+                                sx={{ cursor: "pointer" }}
+                              >
+                                {c.title}
+                              </Typography>
+                              <Typography fontSize={12} color="text.secondary">
+                                {totalDone}/{c.target_count} dias · até{" "}
+                                {dayjs(c.end_date).format("DD/MM")}
+                              </Typography>
+                            </>
+                          )}
                         </Box>
                         <Chip
                           label={doneToday ? "Feito hoje ✓" : "Marcar hoje"}
@@ -658,6 +731,80 @@ export default function GoalsChallenges() {
               <CircularProgress size={20} sx={{ color: "white" }} />
             ) : (
               "Criar desafio"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog: editar meta */}
+      <Dialog
+        open={editGoalDialog}
+        onClose={() => setEditGoalDialog(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 1 } }}
+      >
+        <DialogTitle sx={{ pb: 0 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: "12px",
+                bgcolor: palette.verde + "18",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Pencil size={20} color={palette.verde} />
+            </Box>
+            <Box>
+              <Typography fontWeight={600} fontSize={18}>
+                Editar meta
+              </Typography>
+            </Box>
+          </Stack>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <Stack gap={3} sx={{ mt: 3 }}>
+            <TextField
+              label="O que você quer alcançar?"
+              value={editGoalTitle}
+              onChange={(e) => setEditGoalTitle(e.target.value)}
+              fullWidth
+              size="small"
+              multiline
+              minRows={4}
+            />
+            <TextField
+              label="Prazo (opcional)"
+              type="date"
+              value={editGoalDate}
+              onChange={(e) => setEditGoalDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+              size="small"
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setEditGoalDialog(false)}
+            sx={{ color: palette.cinza }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            onClick={saveEditGoal}
+            disabled={!editGoalTitle.trim() || actionBusy}
+            sx={{ borderRadius: 2, px: 3 }}
+          >
+            {actionBusy ? (
+              <CircularProgress size={20} sx={{ color: "white" }} />
+            ) : (
+              "Salvar"
             )}
           </Button>
         </DialogActions>

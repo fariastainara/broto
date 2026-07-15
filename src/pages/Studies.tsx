@@ -119,6 +119,13 @@ export default function Studies() {
   const [elapsed, setElapsed] = useState("");
   const [actionBusy, setActionBusy] = useState(false);
 
+  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
+  const [editingCourseTitle, setEditingCourseTitle] = useState("");
+  const [editingModuleId, setEditingModuleId] = useState<string | null>(null);
+  const [editingModuleTitle, setEditingModuleTitle] = useState("");
+  const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
+  const [editingLessonTitle, setEditingLessonTitle] = useState("");
+
   const [sessionDialog, setSessionDialog] = useState(false);
   const [freeSession, setFreeSession] = useState(false);
   const [newSession, setNewSession] = useState({
@@ -331,6 +338,27 @@ export default function Studies() {
 
   async function handleDeleteLesson(id: string) {
     await supabase.from("course_lessons").delete().eq("id", id);
+    loadCourses();
+  }
+
+  async function saveEditCourse(id: string) {
+    if (!editingCourseTitle.trim()) return;
+    await supabase.from("courses").update({ title: editingCourseTitle.trim() }).eq("id", id);
+    setEditingCourseId(null);
+    loadCourses();
+  }
+
+  async function saveEditModule(id: string) {
+    if (!editingModuleTitle.trim()) return;
+    await supabase.from("course_modules").update({ title: editingModuleTitle.trim() }).eq("id", id);
+    setEditingModuleId(null);
+    loadCourses();
+  }
+
+  async function saveEditLesson(id: string) {
+    if (!editingLessonTitle.trim()) return;
+    await supabase.from("course_lessons").update({ title: editingLessonTitle.trim() }).eq("id", id);
+    setEditingLessonId(null);
     loadCourses();
   }
 
@@ -827,9 +855,34 @@ export default function Studies() {
                             alignItems="center"
                             spacing={1}
                           >
-                            <Typography fontWeight={600} fontSize={14}>
-                              {course.title}
-                            </Typography>
+                            {editingCourseId === course.id ? (
+                              <TextField
+                                size="small"
+                                value={editingCourseTitle}
+                                onChange={(e) => setEditingCourseTitle(e.target.value)}
+                                onKeyDown={(e) => {
+                                  e.stopPropagation();
+                                  if (e.key === "Enter") saveEditCourse(course.id);
+                                  if (e.key === "Escape") setEditingCourseId(null);
+                                }}
+                                onBlur={() => saveEditCourse(course.id)}
+                                onClick={(e) => e.stopPropagation()}
+                                autoFocus
+                                inputProps={{ style: { fontSize: 14, fontWeight: 600 } }}
+                              />
+                            ) : (
+                              <Typography
+                                fontWeight={600}
+                                fontSize={14}
+                                onDoubleClick={(e) => {
+                                  e.stopPropagation();
+                                  setEditingCourseId(course.id);
+                                  setEditingCourseTitle(course.title);
+                                }}
+                              >
+                                {course.title}
+                              </Typography>
+                            )}
                             <Chip
                               size="small"
                               label={COURSE_STATUS_OPTIONS[course.status].label}
@@ -957,13 +1010,36 @@ export default function Studies() {
                                       color={palette.cinza}
                                     />
                                   )}
-                                  <Typography
-                                    fontWeight={600}
-                                    fontSize={13}
-                                    sx={{ flex: 1 }}
-                                  >
-                                    {mod.title}
-                                  </Typography>
+                                  {editingModuleId === mod.id ? (
+                                    <TextField
+                                      size="small"
+                                      value={editingModuleTitle}
+                                      onChange={(e) => setEditingModuleTitle(e.target.value)}
+                                      onKeyDown={(e) => {
+                                        e.stopPropagation();
+                                        if (e.key === "Enter") saveEditModule(mod.id);
+                                        if (e.key === "Escape") setEditingModuleId(null);
+                                      }}
+                                      onBlur={() => saveEditModule(mod.id)}
+                                      onClick={(e) => e.stopPropagation()}
+                                      autoFocus
+                                      sx={{ flex: 1 }}
+                                      inputProps={{ style: { fontSize: 13, fontWeight: 600 } }}
+                                    />
+                                  ) : (
+                                    <Typography
+                                      fontWeight={600}
+                                      fontSize={13}
+                                      sx={{ flex: 1, cursor: "pointer" }}
+                                      onDoubleClick={(e) => {
+                                        e.stopPropagation();
+                                        setEditingModuleId(mod.id);
+                                        setEditingModuleTitle(mod.title);
+                                      }}
+                                    >
+                                      {mod.title}
+                                    </Typography>
+                                  )}
                                   <Typography
                                     fontSize={11}
                                     color="text.secondary"
@@ -1005,20 +1081,43 @@ export default function Studies() {
                                             },
                                           }}
                                         />
-                                        <Typography
-                                          fontSize={13}
-                                          sx={{
-                                            flex: 1,
-                                            textDecoration: lesson.completed
-                                              ? "line-through"
-                                              : "none",
-                                            color: lesson.completed
-                                              ? "text.secondary"
-                                              : "text.primary",
-                                          }}
-                                        >
-                                          {lesson.title}
-                                        </Typography>
+                                        {editingLessonId === lesson.id ? (
+                                          <TextField
+                                            size="small"
+                                            value={editingLessonTitle}
+                                            onChange={(e) => setEditingLessonTitle(e.target.value)}
+                                            onKeyDown={(e) => {
+                                              if (e.key === "Enter") saveEditLesson(lesson.id);
+                                              if (e.key === "Escape") setEditingLessonId(null);
+                                            }}
+                                            onBlur={() => saveEditLesson(lesson.id)}
+                                            autoFocus
+                                            sx={{ flex: 1 }}
+                                            inputProps={{ style: { fontSize: 13 } }}
+                                          />
+                                        ) : (
+                                          <Typography
+                                            fontSize={13}
+                                            onClick={() => {
+                                              if (!lesson.completed) {
+                                                setEditingLessonId(lesson.id);
+                                                setEditingLessonTitle(lesson.title);
+                                              }
+                                            }}
+                                            sx={{
+                                              flex: 1,
+                                              textDecoration: lesson.completed
+                                                ? "line-through"
+                                                : "none",
+                                              color: lesson.completed
+                                                ? "text.secondary"
+                                                : "text.primary",
+                                              cursor: lesson.completed ? "default" : "pointer",
+                                            }}
+                                          >
+                                            {lesson.title}
+                                          </Typography>
+                                        )}
                                         {lesson.duration_min && (
                                           <Typography
                                             fontSize={11}

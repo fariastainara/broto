@@ -49,6 +49,8 @@ export default function Tasks() {
   const [newItemTitle, setNewItemTitle] = useState("");
   const [emptyLists, setEmptyLists] = useState<string[]>([]);
   const [actionBusy, setActionBusy] = useState(false);
+  const [editingTask, setEditingTask] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
 
   async function loadTasks() {
     if (!user) return;
@@ -119,6 +121,17 @@ export default function Tasks() {
 
   async function removeItem(id: string) {
     await supabase.from("tasks").delete().eq("id", id);
+    loadTasks();
+  }
+
+  async function saveEditTask(id: string) {
+    if (!editingTitle.trim()) return;
+    await supabase
+      .from("tasks")
+      .update({ title: editingTitle.trim() })
+      .eq("id", id);
+    setEditingTask(null);
+    setEditingTitle("");
     loadTasks();
   }
 
@@ -289,20 +302,45 @@ export default function Tasks() {
                                 "&.Mui-checked": { color: palette.verde },
                               }}
                             />
-                            <Typography
-                              fontSize={14}
-                              sx={{
-                                flex: 1,
-                                textDecoration: isDone
-                                  ? "line-through"
-                                  : "none",
-                                color: isDone
-                                  ? "text.secondary"
-                                  : "text.primary",
-                              }}
-                            >
-                              {task.title}
-                            </Typography>
+                            {editingTask === task.id ? (
+                              <TextField
+                                size="small"
+                                value={editingTitle}
+                                onChange={(e) =>
+                                  setEditingTitle(e.target.value)
+                                }
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") saveEditTask(task.id);
+                                  if (e.key === "Escape") setEditingTask(null);
+                                }}
+                                onBlur={() => saveEditTask(task.id)}
+                                autoFocus
+                                sx={{ flex: 1 }}
+                                inputProps={{ style: { fontSize: 14 } }}
+                              />
+                            ) : (
+                              <Typography
+                                fontSize={14}
+                                onClick={() => {
+                                  if (!isDone) {
+                                    setEditingTask(task.id);
+                                    setEditingTitle(task.title);
+                                  }
+                                }}
+                                sx={{
+                                  flex: 1,
+                                  textDecoration: isDone
+                                    ? "line-through"
+                                    : "none",
+                                  color: isDone
+                                    ? "text.secondary"
+                                    : "text.primary",
+                                  cursor: isDone ? "default" : "pointer",
+                                }}
+                              >
+                                {task.title}
+                              </Typography>
+                            )}
                             <IconButton
                               size="small"
                               onClick={() => removeItem(task.id)}
