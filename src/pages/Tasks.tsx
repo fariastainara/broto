@@ -51,6 +51,11 @@ export default function Tasks() {
   const [actionBusy, setActionBusy] = useState(false);
   const [editingTask, setEditingTask] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
+  const [deleteListConfirm, setDeleteListConfirm] = useState<string | null>(
+    null,
+  );
+  const [editingList, setEditingList] = useState<string | null>(null);
+  const [editingListName, setEditingListName] = useState("");
 
   async function loadTasks() {
     if (!user) return;
@@ -126,12 +131,46 @@ export default function Tasks() {
 
   async function saveEditTask(id: string) {
     if (!editingTitle.trim()) return;
-    await supabase
-      .from("tasks")
-      .update({ title: editingTitle.trim() })
-      .eq("id", id);
+    const newTitle = editingTitle.trim();
+    setTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, title: newTitle } : t)),
+    );
     setEditingTask(null);
     setEditingTitle("");
+    await supabase.from("tasks").update({ title: newTitle }).eq("id", id);
+    loadTasks();
+  }
+
+  async function deleteList(listName: string) {
+    const listTasks = tasks.filter((t) => (t.category || "outro") === listName);
+    for (const t of listTasks) {
+      await supabase.from("tasks").delete().eq("id", t.id);
+    }
+    setEmptyLists((prev) => prev.filter((n) => n !== listName));
+    setDeleteListConfirm(null);
+    loadTasks();
+  }
+
+  async function renameList(oldName: string) {
+    const newName = editingListName.trim().toLowerCase().replace(/\s+/g, "_");
+    if (!newName || newName === oldName) {
+      setEditingList(null);
+      return;
+    }
+    setTasks((prev) =>
+      prev.map((t) =>
+        (t.category || "outro") === oldName
+          ? { ...t, category: newName as any }
+          : t,
+      ),
+    );
+    setEmptyLists((prev) => prev.map((n) => (n === oldName ? newName : n)));
+    setEditingList(null);
+    setEditingListName("");
+    const listTasks = tasks.filter((t) => (t.category || "outro") === oldName);
+    for (const t of listTasks) {
+      await supabase.from("tasks").update({ category: newName }).eq("id", t.id);
+    }
     loadTasks();
   }
 
@@ -260,12 +299,42 @@ export default function Tasks() {
                         <ListChecks size={20} color={color} />
                       </Box>
                       <Box sx={{ flex: 1 }}>
-                        <Typography
-                          fontWeight={600}
-                          sx={{ textTransform: "capitalize" }}
-                        >
-                          {listName.replace(/_/g, " ")}
-                        </Typography>
+                        {editingList === listName ? (
+                          <TextField
+                            variant="standard"
+                            size="small"
+                            value={editingListName}
+                            onChange={(e) => setEditingListName(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") renameList(listName);
+                              if (e.key === "Escape") setEditingList(null);
+                            }}
+                            onBlur={() => renameList(listName)}
+                            autoFocus
+                            InputProps={{ disableUnderline: true }}
+                            inputProps={{
+                              style: {
+                                fontSize: 16,
+                                fontWeight: 600,
+                                textTransform: "capitalize",
+                              },
+                            }}
+                          />
+                        ) : (
+                          <Typography
+                            fontWeight={600}
+                            onClick={() => {
+                              setEditingList(listName);
+                              setEditingListName(listName.replace(/_/g, " "));
+                            }}
+                            sx={{
+                              textTransform: "capitalize",
+                              cursor: "pointer",
+                            }}
+                          >
+                            {listName.replace(/_/g, " ")}
+                          </Typography>
+                        )}
                         <Typography fontSize={13} color="text.secondary">
                           {done}/{total} concluído{total !== 1 ? "s" : ""}
                         </Typography>
@@ -278,6 +347,12 @@ export default function Tasks() {
                         }}
                       >
                         <Plus size={20} />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={() => setDeleteListConfirm(listName)}
+                      >
+                        <Trash2 size={16} color={palette.cinza} />
                       </IconButton>
                     </Stack>
 
@@ -304,6 +379,7 @@ export default function Tasks() {
                             />
                             {editingTask === task.id ? (
                               <TextField
+                                variant="standard"
                                 size="small"
                                 value={editingTitle}
                                 onChange={(e) =>
@@ -316,6 +392,7 @@ export default function Tasks() {
                                 onBlur={() => saveEditTask(task.id)}
                                 autoFocus
                                 sx={{ flex: 1 }}
+                                InputProps={{ disableUnderline: true }}
                                 inputProps={{ style: { fontSize: 14 } }}
                               />
                             ) : (
@@ -473,6 +550,44 @@ export default function Tasks() {
             sx={{ borderRadius: 2, px: 3 }}
           >
             Criar lista
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog: confirmar exclusão de lista */}
+      <Dialog
+        open={!!deleteListConfirm}
+        onClose={() => setDeleteListConfirm(null)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 1 } }}
+      >
+        <DialogTitle>
+          <Typography fontWeight={600} fontSize={18}>
+            Excluir lista
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Typography fontSize={14} color="text.secondary">
+            Tem certeza que deseja excluir a lista{" "}
+            <strong>{deleteListConfirm?.replace(/_/g, " ")}</strong> e todas as
+            suas tarefas?
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setDeleteListConfirm(null)}
+            sx={{ color: palette.cinza }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={() => deleteListConfirm && deleteList(deleteListConfirm)}
+            sx={{ borderRadius: 2, px: 3 }}
+          >
+            Excluir
           </Button>
         </DialogActions>
       </Dialog>

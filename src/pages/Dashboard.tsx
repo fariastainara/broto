@@ -906,31 +906,31 @@ export default function Dashboard() {
                 {(
                   [
                     {
-                      label: "Excelente",
+                      label: "Feliz",
                       color: palette.verde,
                       key: "excelente",
                       icon: Laugh,
                     },
                     {
-                      label: "Bom",
+                      label: "Tranquilo",
                       color: palette.verdeClaro,
                       key: "bom",
                       icon: Smile,
                     },
                     {
-                      label: "Normal",
+                      label: "Neutro",
                       color: palette.cinza,
                       key: "normal",
                       icon: Meh,
                     },
                     {
-                      label: "Ruim",
+                      label: "Cansado",
                       color: "#D9A441",
                       key: "ruim",
                       icon: Frown,
                     },
                     {
-                      label: "Péssimo",
+                      label: "Estressado",
                       color: palette.laranja,
                       key: "pessimo",
                       icon: Angry,

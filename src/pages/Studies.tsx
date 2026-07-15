@@ -343,31 +343,40 @@ export default function Studies() {
 
   async function saveEditCourse(id: string) {
     if (!editingCourseTitle.trim()) return;
-    await supabase
-      .from("courses")
-      .update({ title: editingCourseTitle.trim() })
-      .eq("id", id);
+    const newTitle = editingCourseTitle.trim();
+    setCourses((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, title: newTitle } : c)),
+    );
     setEditingCourseId(null);
+    await supabase.from("courses").update({ title: newTitle }).eq("id", id);
     loadCourses();
   }
 
   async function saveEditModule(id: string) {
     if (!editingModuleTitle.trim()) return;
+    const newTitle = editingModuleTitle.trim();
+    setModules((prev) =>
+      prev.map((m) => (m.id === id ? { ...m, title: newTitle } : m)),
+    );
+    setEditingModuleId(null);
     await supabase
       .from("course_modules")
-      .update({ title: editingModuleTitle.trim() })
+      .update({ title: newTitle })
       .eq("id", id);
-    setEditingModuleId(null);
     loadCourses();
   }
 
   async function saveEditLesson(id: string) {
     if (!editingLessonTitle.trim()) return;
+    const newTitle = editingLessonTitle.trim();
+    setLessons((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, title: newTitle } : l)),
+    );
+    setEditingLessonId(null);
     await supabase
       .from("course_lessons")
-      .update({ title: editingLessonTitle.trim() })
+      .update({ title: newTitle })
       .eq("id", id);
-    setEditingLessonId(null);
     loadCourses();
   }
 
@@ -866,6 +875,7 @@ export default function Studies() {
                           >
                             {editingCourseId === course.id ? (
                               <TextField
+                                variant="standard"
                                 size="small"
                                 value={editingCourseTitle}
                                 onChange={(e) =>
@@ -881,6 +891,7 @@ export default function Studies() {
                                 onBlur={() => saveEditCourse(course.id)}
                                 onClick={(e) => e.stopPropagation()}
                                 autoFocus
+                                InputProps={{ disableUnderline: true }}
                                 inputProps={{
                                   style: { fontSize: 14, fontWeight: 600 },
                                 }}
@@ -889,11 +900,12 @@ export default function Studies() {
                               <Typography
                                 fontWeight={600}
                                 fontSize={14}
-                                onDoubleClick={(e) => {
+                                onClick={(e) => {
                                   e.stopPropagation();
                                   setEditingCourseId(course.id);
                                   setEditingCourseTitle(course.title);
                                 }}
+                                sx={{ cursor: "pointer" }}
                               >
                                 {course.title}
                               </Typography>
@@ -1027,6 +1039,7 @@ export default function Studies() {
                                   )}
                                   {editingModuleId === mod.id ? (
                                     <TextField
+                                      variant="standard"
                                       size="small"
                                       value={editingModuleTitle}
                                       onChange={(e) =>
@@ -1043,6 +1056,7 @@ export default function Studies() {
                                       onClick={(e) => e.stopPropagation()}
                                       autoFocus
                                       sx={{ flex: 1 }}
+                                      InputProps={{ disableUnderline: true }}
                                       inputProps={{
                                         style: {
                                           fontSize: 13,
@@ -1055,7 +1069,7 @@ export default function Studies() {
                                       fontWeight={600}
                                       fontSize={13}
                                       sx={{ flex: 1, cursor: "pointer" }}
-                                      onDoubleClick={(e) => {
+                                      onClick={(e) => {
                                         e.stopPropagation();
                                         setEditingModuleId(mod.id);
                                         setEditingModuleTitle(mod.title);
@@ -1107,6 +1121,7 @@ export default function Studies() {
                                         />
                                         {editingLessonId === lesson.id ? (
                                           <TextField
+                                            variant="standard"
                                             size="small"
                                             value={editingLessonTitle}
                                             onChange={(e) =>
@@ -1125,6 +1140,9 @@ export default function Studies() {
                                             }
                                             autoFocus
                                             sx={{ flex: 1 }}
+                                            InputProps={{
+                                              disableUnderline: true,
+                                            }}
                                             inputProps={{
                                               style: { fontSize: 13 },
                                             }}

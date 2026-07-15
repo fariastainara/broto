@@ -48,7 +48,6 @@ export default function GoalsChallenges() {
   const [goalDialog, setGoalDialog] = useState(false);
   const [goalTitle, setGoalTitle] = useState("");
   const [goalDate, setGoalDate] = useState("");
-  const [goalDateFocused, setGoalDateFocused] = useState(false);
 
   const [challengeDialog, setChallengeDialog] = useState(false);
   const [chTitle, setChTitle] = useState("");
@@ -338,15 +337,11 @@ export default function GoalsChallenges() {
                     <Stack
                       key={g.id}
                       direction="row"
-                      alignItems="flex-start"
+                      alignItems="center"
                       spacing={1}
                       sx={{ py: 1 }}
                     >
-                      <IconButton
-                        size="small"
-                        onClick={() => toggleGoal(g)}
-                        sx={{ mt: 0.2 }}
-                      >
+                      <IconButton size="small" onClick={() => toggleGoal(g)}>
                         {done ? (
                           <CheckCircle2 size={20} color={palette.verde} />
                         ) : (
@@ -497,44 +492,28 @@ export default function GoalsChallenges() {
                     <Stack key={c.id} gap={1} sx={{ py: 1.5 }}>
                       <Stack direction="row" alignItems="center" spacing={1}>
                         <Box sx={{ flex: 1 }}>
-                          {editChallengeId === c.id ? (
-                            <TextField
+                          <Stack
+                            direction="row"
+                            alignItems="center"
+                            spacing={0.5}
+                          >
+                            <Typography fontWeight={600} fontSize={14}>
+                              {c.title}
+                            </Typography>
+                            <IconButton
                               size="small"
-                              value={editChallengeTitle}
-                              onChange={(e) =>
-                                setEditChallengeTitle(e.target.value)
-                              }
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") saveEditChallenge(c.id);
-                                if (e.key === "Escape")
-                                  setEditChallengeId(null);
+                              onClick={() => {
+                                setEditChallengeId(c.id);
+                                setEditChallengeTitle(c.title);
                               }}
-                              onBlur={() => saveEditChallenge(c.id)}
-                              autoFocus
-                              fullWidth
-                              inputProps={{
-                                style: { fontSize: 14, fontWeight: 600 },
-                              }}
-                            />
-                          ) : (
-                            <>
-                              <Typography
-                                fontWeight={600}
-                                fontSize={14}
-                                onClick={() => {
-                                  setEditChallengeId(c.id);
-                                  setEditChallengeTitle(c.title);
-                                }}
-                                sx={{ cursor: "pointer" }}
-                              >
-                                {c.title}
-                              </Typography>
-                              <Typography fontSize={12} color="text.secondary">
-                                {totalDone}/{c.target_count} dias · até{" "}
-                                {dayjs(c.end_date).format("DD/MM")}
-                              </Typography>
-                            </>
-                          )}
+                            >
+                              <Pencil size={13} color={palette.cinza} />
+                            </IconButton>
+                          </Stack>
+                          <Typography fontSize={12} color="text.secondary">
+                            {totalDone}/{c.target_count} dias · até{" "}
+                            {dayjs(c.end_date).format("DD/MM")}
+                          </Typography>
                         </Box>
                         <Chip
                           label={doneToday ? "Feito hoje ✓" : "Marcar hoje"}
@@ -630,15 +609,19 @@ export default function GoalsChallenges() {
               type="date"
               value={goalDate}
               onChange={(e) => setGoalDate(e.target.value)}
-              onFocus={() => setGoalDateFocused(true)}
-              onBlur={() => setGoalDateFocused(false)}
-              InputLabelProps={{ shrink: goalDateFocused || !!goalDate }}
               fullWidth
-              size="small"
+              InputLabelProps={{ shrink: !!goalDate || undefined }}
               sx={{
+                "&:focus-within .MuiInputLabel-root:not(.MuiInputLabel-shrink)":
+                  {
+                    transform: "translate(14px, -9px) scale(0.75)",
+                    color: "primary.main",
+                  },
                 '& input[type="date"]::-webkit-datetime-edit': {
-                  color:
-                    goalDateFocused || goalDate ? "inherit" : "transparent",
+                  color: goalDate ? "inherit" : "transparent",
+                },
+                '&:focus-within input[type="date"]::-webkit-datetime-edit': {
+                  color: "inherit",
                 },
               }}
             />
@@ -787,9 +770,21 @@ export default function GoalsChallenges() {
               type="date"
               value={editGoalDate}
               onChange={(e) => setEditGoalDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
               fullWidth
-              size="small"
+              InputLabelProps={{ shrink: !!editGoalDate || undefined }}
+              sx={{
+                "&:focus-within .MuiInputLabel-root:not(.MuiInputLabel-shrink)":
+                  {
+                    transform: "translate(14px, -9px) scale(0.75)",
+                    color: "primary.main",
+                  },
+                '& input[type="date"]::-webkit-datetime-edit': {
+                  color: editGoalDate ? "inherit" : "transparent",
+                },
+                '&:focus-within input[type="date"]::-webkit-datetime-edit': {
+                  color: "inherit",
+                },
+              }}
             />
           </Stack>
         </DialogContent>
@@ -811,6 +806,70 @@ export default function GoalsChallenges() {
             ) : (
               "Salvar"
             )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog: editar desafio */}
+      <Dialog
+        open={!!editChallengeId}
+        onClose={() => setEditChallengeId(null)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 1 } }}
+      >
+        <DialogTitle sx={{ pb: 0 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: "12px",
+                bgcolor: palette.laranja + "18",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Pencil size={20} color={palette.laranja} />
+            </Box>
+            <Box>
+              <Typography fontWeight={600} fontSize={18}>
+                Editar desafio
+              </Typography>
+            </Box>
+          </Stack>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <TextField
+            label="Nome do desafio"
+            value={editChallengeTitle}
+            onChange={(e) => setEditChallengeTitle(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && editChallengeId)
+                saveEditChallenge(editChallengeId);
+            }}
+            fullWidth
+            autoFocus
+            sx={{ mt: 3 }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setEditChallengeId(null)}
+            sx={{ color: palette.cinza }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            onClick={() =>
+              editChallengeId && saveEditChallenge(editChallengeId)
+            }
+            disabled={!editChallengeTitle.trim()}
+            sx={{ borderRadius: 2, px: 3 }}
+          >
+            Salvar
           </Button>
         </DialogActions>
       </Dialog>

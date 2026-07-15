@@ -17,7 +17,6 @@ import {
   DialogContent,
   DialogActions,
   Checkbox,
-  FormControlLabel,
   CircularProgress,
 } from "@mui/material";
 import {
@@ -95,11 +94,11 @@ const MOOD_OPTIONS: Record<MoodType, { icon: LucideIcon; color: string }> = {
 };
 
 const MOOD_LABELS: Record<MoodType, string> = {
-  excelente: "excelente",
-  bom: "bom",
-  normal: "normal",
-  ruim: "ruim",
-  pessimo: "péssimo",
+  excelente: "Feliz",
+  bom: "Tranquilo",
+  normal: "Neutro",
+  ruim: "Cansado",
+  pessimo: "Estressado",
 };
 
 /** Etiqueta pequena que agrupa cards relacionados (Nutrição, Corpo, Bem-estar) */
@@ -459,12 +458,13 @@ export default function Diary() {
 
   async function saveEditHabit(id: string) {
     if (!editingHabitTitle.trim()) return;
-    await supabase
-      .from("habits")
-      .update({ title: editingHabitTitle.trim() })
-      .eq("id", id);
+    const newTitle = editingHabitTitle.trim();
+    setHabits((prev) =>
+      prev.map((h) => (h.id === id ? { ...h, title: newTitle } : h)),
+    );
     setEditingHabitId(null);
     setEditingHabitTitle("");
+    await supabase.from("habits").update({ title: newTitle }).eq("id", id);
     loadData();
   }
 
@@ -1281,54 +1281,52 @@ export default function Diary() {
                   const streak = getStreak(h.id);
                   return (
                     <Stack key={h.id} direction="row" alignItems="center">
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={checkedToday}
-                            onChange={() => toggleHabit(h.id)}
-                            sx={{
-                              color: palette.verdeClaro,
-                              "&.Mui-checked": { color: palette.verde },
-                            }}
-                          />
-                        }
-                        label={
-                          editingHabitId === h.id ? (
-                            <TextField
-                              size="small"
-                              value={editingHabitTitle}
-                              onChange={(e) =>
-                                setEditingHabitTitle(e.target.value)
-                              }
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") saveEditHabit(h.id);
-                                if (e.key === "Escape") setEditingHabitId(null);
-                              }}
-                              onBlur={() => saveEditHabit(h.id)}
-                              autoFocus
-                              inputProps={{ style: { fontSize: 14 } }}
-                            />
-                          ) : (
-                            <Typography
-                              fontSize={14}
-                              onClick={() => {
-                                setEditingHabitId(h.id);
-                                setEditingHabitTitle(h.title);
-                              }}
-                              sx={{
-                                textDecoration: checkedToday
-                                  ? "line-through"
-                                  : "none",
-                                cursor: "pointer",
-                              }}
-                            >
-                              {h.icon ? `${h.icon} ` : ""}
-                              {h.title}
-                            </Typography>
-                          )
-                        }
-                        sx={{ flex: 1 }}
+                      <Checkbox
+                        checked={checkedToday}
+                        onChange={() => toggleHabit(h.id)}
+                        sx={{
+                          color: palette.verdeClaro,
+                          "&.Mui-checked": { color: palette.verde },
+                        }}
                       />
+                      <Box sx={{ flex: 1 }}>
+                        {editingHabitId === h.id ? (
+                          <TextField
+                            variant="standard"
+                            size="small"
+                            value={editingHabitTitle}
+                            onChange={(e) =>
+                              setEditingHabitTitle(e.target.value)
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") saveEditHabit(h.id);
+                              if (e.key === "Escape") setEditingHabitId(null);
+                            }}
+                            onBlur={() => saveEditHabit(h.id)}
+                            autoFocus
+                            fullWidth
+                            InputProps={{ disableUnderline: true }}
+                            inputProps={{ style: { fontSize: 14 } }}
+                          />
+                        ) : (
+                          <Typography
+                            fontSize={14}
+                            onClick={() => {
+                              setEditingHabitId(h.id);
+                              setEditingHabitTitle(h.title);
+                            }}
+                            sx={{
+                              textDecoration: checkedToday
+                                ? "line-through"
+                                : "none",
+                              cursor: "pointer",
+                            }}
+                          >
+                            {h.icon ? `${h.icon} ` : ""}
+                            {h.title}
+                          </Typography>
+                        )}
+                      </Box>
                       {streak > 0 && (
                         <Chip
                           label={`🔥 ${streak}`}
