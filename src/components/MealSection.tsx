@@ -379,7 +379,13 @@ export default function MealSection({
         onClose={() => setMealModalOpen(false)}
         fullWidth
         maxWidth="sm"
-        PaperProps={{ sx: { borderRadius: 1 } }}
+        PaperProps={{
+          sx: {
+            borderRadius: 1,
+            m: { xs: 1, sm: 4 },
+            maxHeight: { xs: "calc(100% - 16px)", sm: "calc(100% - 64px)" },
+          },
+        }}
       >
         <DialogTitle sx={{ pb: 0 }}>
           <Stack direction="row" alignItems="flex-start" spacing={2}>
@@ -674,7 +680,7 @@ export default function MealSection({
           )}
 
           {tabIndex === 1 && (
-            <Stack spacing={2} sx={{ mt: 4 }}>
+            <Stack spacing={2} sx={{ mt: 3 }}>
               <Stack direction="row" spacing={1}>
                 <TextField
                   select
@@ -706,12 +712,13 @@ export default function MealSection({
                   onChange={(e) => setMealCal(e.target.value)}
                   size="small"
                   InputLabelProps={{ shrink: false }}
-                  sx={{ width: 110 }}
+                  sx={{ width: 100 }}
                 />
               </Stack>
               <TextField
                 multiline
-                minRows={4}
+                minRows={2}
+                maxRows={5}
                 label="O que você comeu?"
                 value={mealDesc}
                 onChange={(e) => setMealDesc(e.target.value)}

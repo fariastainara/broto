@@ -193,64 +193,43 @@ export default function Layout({ children }: { children?: ReactNode }) {
               transition: pullRefreshing ? "none" : "margin-top 0.1s",
             }}
           >
-            <svg width="22" height="22" viewBox="0 0 64 64">
-              <motion.path
-                d="M32 46 V30"
-                stroke={palette.menta}
-                strokeWidth="3"
-                strokeLinecap="round"
-                animate={pullRefreshing ? { opacity: [0.5, 1, 0.5] } : {}}
-                transition={{
-                  duration: 1.2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-              <motion.path
-                d="M32 30 C20 30 16 20 16 14 C24 14 32 18 32 30 Z"
-                fill={palette.verdeClaro}
-                style={{ transformOrigin: "32px 30px" }}
-                animate={
-                  pullRefreshing
-                    ? { rotate: [-4, 4, -4], scale: [1, 1.04, 1] }
-                    : { rotate: pullDistance * 3 }
-                }
-                transition={{
-                  duration: 1.2,
-                  repeat: pullRefreshing ? Infinity : 0,
-                  ease: "easeInOut",
-                }}
-              />
-              <motion.path
-                d="M32 34 C44 34 48 24 48 18 C40 18 32 22 32 34 Z"
-                fill="#74C69D"
-                style={{ transformOrigin: "32px 34px" }}
-                animate={
-                  pullRefreshing
-                    ? { rotate: [4, -4, 4], scale: [1, 1.04, 1] }
-                    : { rotate: -(pullDistance * 3) }
-                }
-                transition={{
-                  duration: 1.2,
-                  repeat: pullRefreshing ? Infinity : 0,
-                  ease: "easeInOut",
-                  delay: 0.15,
-                }}
-              />
-              <motion.circle
-                cx="32"
-                cy="47"
-                r="3"
-                fill={palette.laranja}
-                style={{ transformOrigin: "32px 47px" }}
-                animate={pullRefreshing ? { scale: [1, 1.35, 1] } : {}}
-                transition={{
-                  duration: 1.2,
-                  repeat: Infinity,
-                  ease: "easeInOut",
-                }}
-              />
-            </svg>
+            <Box
+              sx={{
+                width: 22,
+                height: 22,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transform: pullRefreshing
+                  ? "none"
+                  : `rotate(${pullDistance * 3}deg)`,
+                animation: pullRefreshing
+                  ? "sproutSway 1.2s ease-in-out infinite"
+                  : "none",
+                "@keyframes sproutSway": {
+                  "0%, 100%": { transform: "rotate(-6deg) scale(1)" },
+                  "50%": { transform: "rotate(6deg) scale(1.08)" },
+                },
+              }}
+            >
+              <svg width="22" height="22" viewBox="0 0 64 64">
+                <path
+                  d="M32 46 V30"
+                  stroke={palette.menta}
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M32 30 C20 30 16 20 16 14 C24 14 32 18 32 30 Z"
+                  fill={palette.verdeClaro}
+                />
+                <path
+                  d="M32 34 C44 34 48 24 48 18 C40 18 32 22 32 34 Z"
+                  fill="#74C69D"
+                />
+                <circle cx="32" cy="47" r="3" fill={palette.laranja} />
+              </svg>
+            </Box>
           </Box>
         </Box>
       )}
