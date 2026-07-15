@@ -281,7 +281,6 @@ export default function GoalsChallenges() {
                   py: 3.5,
                   px: 2,
                   mt: 2,
-                  ml: 7,
                   border: "1.5px dashed rgba(45,106,79,0.18)",
                   borderRadius: 1,
                   textAlign: "center",
@@ -330,7 +329,7 @@ export default function GoalsChallenges() {
                 </Button>
               </Box>
             ) : (
-              <Stack divider={<Divider />} sx={{ mt: 2, pl: 7 }}>
+              <Stack divider={<Divider />} sx={{ mt: 2 }}>
                 {goals.map((g) => {
                   const done = g.status === "concluida";
                   return (
@@ -426,7 +425,6 @@ export default function GoalsChallenges() {
                   py: 3.5,
                   px: 2,
                   mt: 2,
-                  ml: 7,
                   border: "1.5px dashed rgba(45,106,79,0.18)",
                   borderRadius: 1,
                   textAlign: "center",
@@ -475,7 +473,7 @@ export default function GoalsChallenges() {
                 </Button>
               </Box>
             ) : (
-              <Stack divider={<Divider />} sx={{ mt: 2, pl: 7 }}>
+              <Stack divider={<Divider />} sx={{ mt: 2 }}>
                 {challenges.map((c) => {
                   const doneToday = !!checkins.find(
                     (k) =>

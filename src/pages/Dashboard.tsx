@@ -591,7 +591,7 @@ export default function Dashboard() {
                 {waterPct}%
               </Typography>
             </Stack>
-            <Box sx={{ pl: 7, mt: 1.5 }}>
+            <Box sx={{ mt: 1.5 }}>
               <LinearProgress
                 variant="determinate"
                 value={waterPct}
@@ -606,7 +606,7 @@ export default function Dashboard() {
                 }}
               />
               {waterWeek.length > 0 && (
-                <Box sx={{ height: 80, mt: 1.5 }}>
+                <Box sx={{ height: 80, mt: 3 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={waterWeek}>
                       <defs>
@@ -628,6 +628,7 @@ export default function Dashboard() {
                         tick={{ fontSize: 10 }}
                         axisLine={false}
                         tickLine={false}
+                        padding={{ left: 10, right: 10 }}
                       />
                       <Tooltip
                         formatter={(v) => [`${v}ml`, "Água"]}
@@ -699,7 +700,7 @@ export default function Dashboard() {
                 );
               })()}
             </Stack>
-            <Box sx={{ pl: 7, mt: 1.5, height: 80 }}>
+            <Box sx={{ mt: 1.5, height: 80 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={exerciseWeek}>
                   <defs>
@@ -721,6 +722,7 @@ export default function Dashboard() {
                     tick={{ fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}
+                    padding={{ left: 10, right: 10 }}
                   />
                   <Tooltip
                     formatter={(v) => [`${v}min`, "Exercício"]}
@@ -772,7 +774,7 @@ export default function Dashboard() {
                 </Typography>
               )}
             </Stack>
-            <Box sx={{ pl: 7, mt: 1.5, height: 80 }}>
+            <Box sx={{ mt: 1.5, height: 80 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={sleepWeek}>
                   <defs>
@@ -794,6 +796,7 @@ export default function Dashboard() {
                     tick={{ fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}
+                    padding={{ left: 10, right: 10 }}
                   />
                   <Tooltip
                     formatter={(v) => [`${v}h`, "Sono"]}
@@ -840,7 +843,7 @@ export default function Dashboard() {
                 </Typography>
               </Box>
             </Stack>
-            <Box sx={{ pl: 7, mt: 1.5 }}>
+            <Box sx={{ mt: 1.5 }}>
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.6 }}>
                 {(() => {
                   const daysInMonth = dayjs().daysInMonth();
@@ -1034,7 +1037,7 @@ export default function Dashboard() {
                   </Box>
                 </Stack>
                 {habits.length > 0 && (
-                  <Stack sx={{ mt: 1.5, pl: 7 }}>
+                  <Stack sx={{ mt: 1.5 }}>
                     {habits.slice(0, 4).map((h) => {
                       const done = habitLogs.some((hl) => hl.habit_id === h.id);
                       return (
@@ -1144,7 +1147,7 @@ export default function Dashboard() {
               )}
             </Stack>
             {studyWeek.some((d) => d.min > 0) && (
-              <Box sx={{ pl: 7, mt: 1.5, height: 80 }}>
+              <Box sx={{ mt: 1.5, height: 80 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={studyWeek}>
                     <defs>
@@ -1166,6 +1169,7 @@ export default function Dashboard() {
                       tick={{ fontSize: 10 }}
                       axisLine={false}
                       tickLine={false}
+                      padding={{ left: 10, right: 10 }}
                     />
                     <Tooltip
                       formatter={(v) => [`${v}min`, "Estudo"]}
@@ -1215,7 +1219,7 @@ export default function Dashboard() {
                 </Box>
               </Stack>
               {pendingTasks > 0 && (
-                <Stack sx={{ mt: 1.5, pl: 7 }}>
+                <Stack sx={{ mt: 1.5 }}>
                   {tasks
                     .filter((t) => t.status === "pendente")
                     .slice(0, 3)
@@ -1266,12 +1270,14 @@ export default function Dashboard() {
                 <Box sx={{ flex: 1 }}>
                   <Typography fontWeight={600}>Metas</Typography>
                   <Typography fontSize={13} color="text.secondary">
-                    {goals.length} ativa{goals.length !== 1 ? "s" : ""}
+                    {goals.length > 0
+                      ? `${goals.length} ativa${goals.length !== 1 ? "s" : ""}`
+                      : "Nenhuma meta cadastrada"}
                   </Typography>
                 </Box>
               </Stack>
               {goals.length > 0 && (
-                <Stack sx={{ mt: 1.5, pl: 7 }}>
+                <Stack sx={{ mt: 1.5 }}>
                   {goals.slice(0, 3).map((g) => (
                     <Typography
                       key={g.id}
@@ -1308,7 +1314,9 @@ export default function Dashboard() {
               <Box sx={{ flex: 1 }}>
                 <Typography fontWeight={600}>Desafios</Typography>
                 <Typography fontSize={13} color="text.secondary">
-                  {challenges.length} ativo{challenges.length !== 1 ? "s" : ""}
+                  {challenges.length > 0
+                    ? `${challenges.length} ativo${challenges.length !== 1 ? "s" : ""}`
+                    : "Nenhum desafio ativo"}
                 </Typography>
               </Box>
             </Stack>
@@ -1318,7 +1326,7 @@ export default function Dashboard() {
                 spacing={1}
                 flexWrap="wrap"
                 useFlexGap
-                sx={{ mt: 1.5, pl: 7 }}
+                sx={{ mt: 1.5 }}
               >
                 {challenges.slice(0, 3).map((c) => {
                   const doneToday = !!checkins.find(
@@ -1365,9 +1373,9 @@ export default function Dashboard() {
                 <Typography fontWeight={600}>Peso</Typography>
                 <Typography fontSize={13} color="text.secondary">
                   {latestWeight
-                    ? `${latestWeight} kg`
+                    ? `Peso atual: ${latestWeight} kg`
                     : profile?.weight_kg
-                      ? `${profile.weight_kg} kg`
+                      ? `Peso atual: ${profile.weight_kg} kg`
                       : "Sem registro"}
                 </Typography>
               </Box>
@@ -1377,7 +1385,7 @@ export default function Dashboard() {
                 </Typography>
               )}
             </Stack>
-            <Box sx={{ pl: 7, mt: 1.5, height: 80 }}>
+            <Box sx={{ mt: 1.5, height: 80 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={(() => {
@@ -1415,6 +1423,7 @@ export default function Dashboard() {
                     tick={{ fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}
+                    padding={{ left: 10, right: 10 }}
                   />
                   <YAxis
                     hide

@@ -307,7 +307,7 @@ export default function MealSection({
           </Stack>
 
           {meals.length > 0 && (
-            <Stack divider={<Divider />} sx={{ mt: 2, pl: 7 }}>
+            <Stack divider={<Divider />} sx={{ mt: 2 }}>
               {meals.map((m) => (
                 <Stack key={m.id} gap={0.5} sx={{ py: 1 }}>
                   <Stack direction="row" alignItems="center" spacing={1}>

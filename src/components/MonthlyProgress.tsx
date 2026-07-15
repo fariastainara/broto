@@ -164,6 +164,9 @@ export default function MonthlyProgress({ userId }: MonthlyProgressProps) {
   const [details, setDetails] = useState<Map<string, DayDetail>>(new Map());
   const [loading, setLoading] = useState(false);
   const [extras, setExtras] = useState<Set<string>>(new Set());
+  const [availableExtras, setAvailableExtras] = useState<Set<string>>(
+    new Set(),
+  );
   const [selectedDay, setSelectedDay] = useState<{
     date: string;
     day: number;
@@ -368,6 +371,14 @@ export default function MonthlyProgress({ userId }: MonthlyProgressProps) {
 
     setData(map);
     setDetails(detailMap);
+
+    // Determinar quais categorias extras têm dados
+    const available = new Set<string>();
+    if (studyLogs.length > 0) available.add("study");
+    if (allChallenges.length > 0) available.add("challenge");
+    if (allHabits.length > 0) available.add("habit");
+    setAvailableExtras(available);
+
     setLoading(false);
   }, [userId, month]);
 
@@ -480,27 +491,29 @@ export default function MonthlyProgress({ userId }: MonthlyProgressProps) {
             useFlexGap
             justifyContent="center"
           >
-            {EXTRA_CATEGORIES.map((c) => {
-              const active = extras.has(c.key);
-              const Icon = c.icon;
-              return (
-                <Chip
-                  key={c.key}
-                  icon={<Icon size={13} color={active ? "#fff" : c.color} />}
-                  label={c.label}
-                  size="small"
-                  onClick={() => toggleExtra(c.key)}
-                  sx={{
-                    bgcolor: active ? c.color : "rgba(0,0,0,0.04)",
-                    color: active ? "#fff" : palette.texto,
-                    fontWeight: active ? 600 : 500,
-                    fontSize: 11,
-                    height: 24,
-                    cursor: "pointer",
-                  }}
-                />
-              );
-            })}
+            {EXTRA_CATEGORIES.filter((c) => availableExtras.has(c.key)).map(
+              (c) => {
+                const active = extras.has(c.key);
+                const Icon = c.icon;
+                return (
+                  <Chip
+                    key={c.key}
+                    icon={<Icon size={13} color={active ? "#fff" : c.color} />}
+                    label={c.label}
+                    size="small"
+                    onClick={() => toggleExtra(c.key)}
+                    sx={{
+                      bgcolor: active ? c.color : "rgba(0,0,0,0.04)",
+                      color: active ? "#fff" : palette.texto,
+                      fontWeight: active ? 600 : 500,
+                      fontSize: 11,
+                      height: 24,
+                      cursor: "pointer",
+                    }}
+                  />
+                );
+              },
+            )}
           </Stack>
 
           {loading ? (

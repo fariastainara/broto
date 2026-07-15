@@ -573,7 +573,7 @@ export default function Studies() {
                     },
                   }}
                 />
-                <Box sx={{ minWidth: 0 }}>
+                <Box>
                   <Typography
                     sx={{
                       fontSize: 10.5,
@@ -673,7 +673,6 @@ export default function Studies() {
                   py: 3.5,
                   px: 2,
                   mt: 2,
-                  ml: 7,
                   border: "1.5px dashed rgba(45,106,79,0.18)",
                   borderRadius: 1,
                   textAlign: "center",
@@ -721,7 +720,7 @@ export default function Studies() {
                 </Button>
               </Box>
             ) : (
-              <Stack divider={<Divider />} sx={{ mt: 2, pl: 7 }}>
+              <Stack divider={<Divider />} sx={{ mt: 2 }}>
                 {sessions.map((s) => {
                   const totalMins = dayjs(s.ended_at).diff(
                     dayjs(s.started_at),
@@ -813,7 +812,6 @@ export default function Studies() {
                   py: 3.5,
                   px: 2,
                   mt: 2,
-                  ml: 7,
                   border: "1.5px dashed rgba(45,106,79,0.18)",
                   borderRadius: 1,
                   textAlign: "center",
@@ -862,7 +860,7 @@ export default function Studies() {
                 </Button>
               </Box>
             ) : (
-              <Stack divider={<Divider />} sx={{ mt: 2, pl: 7 }}>
+              <Stack divider={<Divider />} sx={{ mt: 2 }}>
                 {courses.map((course) => {
                   const isExpanded = expandedCourse === course.id;
                   const progressPct =

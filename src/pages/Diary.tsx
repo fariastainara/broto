@@ -641,7 +641,6 @@ export default function Diary() {
               spacing={1.5}
               sx={{ mt: 2 }}
             >
-              <Box sx={{ width: 40, flexShrink: 0 }} />
               <LinearProgress
                 variant="determinate"
                 value={waterPct}
@@ -658,7 +657,7 @@ export default function Diary() {
               </Typography>
             </Stack>
 
-            <Box sx={{ pl: 7, mt: 2 }}>
+            <Box sx={{ mt: 3 }}>
               <Stack
                 direction="row"
                 spacing={1}
@@ -775,7 +774,7 @@ export default function Diary() {
             </Stack>
 
             {exercises.length > 0 && (
-              <Stack divider={<Divider />} sx={{ mt: 2, pl: 7 }}>
+              <Stack divider={<Divider />} sx={{ mt: 2 }}>
                 {exercises.map((ex) => (
                   <Stack
                     key={ex.id}
@@ -864,7 +863,7 @@ export default function Diary() {
             </Stack>
 
             {sleepLog && !editingSleep ? (
-              <Stack sx={{ pl: 7, mt: 2 }}>
+              <Stack sx={{ mt: 2 }}>
                 <Stack direction="row" alignItems="center" spacing={1}>
                   <Box
                     sx={{
@@ -893,7 +892,7 @@ export default function Diary() {
                 </Stack>
               </Stack>
             ) : (
-              <Stack spacing={2} sx={{ mt: 2, pl: 7 }}>
+              <Stack spacing={2} sx={{ mt: 2 }}>
                 <Stack direction="row" spacing={2}>
                   <TextField
                     label="Dormi às"
@@ -986,7 +985,7 @@ export default function Diary() {
 
               if (todayWeight && !weightVal) {
                 return (
-                  <Stack sx={{ pl: 7, mt: 2 }}>
+                  <Stack sx={{ mt: 2 }}>
                     <Stack direction="row" alignItems="center" spacing={1}>
                       <Box
                         sx={{
@@ -1021,7 +1020,7 @@ export default function Diary() {
 
               return (
                 <>
-                  <Stack direction="row" spacing={1} sx={{ mt: 2, pl: 7 }}>
+                  <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
                     <TextField
                       label="Peso (kg)"
                       type="number"
@@ -1047,7 +1046,7 @@ export default function Diary() {
                   </Stack>
 
                   {profileWeight && !weightVal && !todayWeight && (
-                    <Box sx={{ pl: 7, mt: 1 }}>
+                    <Box sx={{ mt: 1 }}>
                       <Chip
                         label={`Manter ${profileWeight} kg`}
                         size="small"
@@ -1123,7 +1122,6 @@ export default function Diary() {
               direction="row"
               alignItems="flex-start"
               spacing={2}
-              sx={{ mb: moodLog ? 0 : 0 }}
             >
               <Box
                 sx={{
@@ -1150,7 +1148,7 @@ export default function Diary() {
               direction="row"
               spacing={0}
               justifyContent="space-between"
-              sx={{ mt: 2, pl: 6 }}
+              sx={{ mt: 2 }}
             >
               {(
                 Object.entries(MOOD_OPTIONS) as [
@@ -1273,7 +1271,7 @@ export default function Diary() {
             </Stack>
 
             {habits.length > 0 && (
-              <Stack sx={{ pl: 7 }}>
+              <Stack>
                 {habits.map((h) => {
                   const checkedToday = habitLogs.some(
                     (hl) => hl.habit_id === h.id && hl.logged_date === today,

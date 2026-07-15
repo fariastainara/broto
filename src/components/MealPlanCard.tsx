@@ -150,7 +150,7 @@ export default function MealPlanCard({ userId }: MealPlanCardProps) {
           </Box>
         </Stack>
 
-        <Box sx={{ pl: 7, mt: 1.5 }}>
+        <Box sx={{ mt: 1.5 }}>
           {/* Tabs */}
           {tabs.length > 1 && (
             <Tabs

@@ -222,7 +222,6 @@ export default function Tasks() {
                   py: 3.5,
                   px: 2,
                   mt: 2,
-                  ml: 7,
                   border: "1.5px dashed rgba(45,106,79,0.18)",
                   borderRadius: 1,
                   textAlign: "center",
@@ -356,7 +355,7 @@ export default function Tasks() {
                       </IconButton>
                     </Stack>
 
-                    <Stack divider={<Divider />} sx={{ mt: 2, pl: 7 }}>
+                    <Stack divider={<Divider />} sx={{ mt: 2 }}>
                       {listTasks.map((task) => {
                         const isDone = task.status === "concluida";
                         return (
