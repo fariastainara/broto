@@ -143,6 +143,9 @@ export default function Studies() {
     return saved ? JSON.parse(saved) : null;
   });
 
+  const [stopDialog, setStopDialog] = useState(false);
+  const [stopNotes, setStopNotes] = useState("");
+
   async function loadCourses() {
     if (!user) return;
     const { data: coursesData } = await supabase
@@ -421,20 +424,36 @@ export default function Studies() {
     loadSessions();
   }
 
-  async function handleStopTimer() {
+  function handleStopTimer() {
+    setStopNotes("");
+    setStopDialog(true);
+  }
+
+  async function confirmStopTimer() {
     if (!user || !activeSession) return;
     setActionBusy(true);
     await supabase.from("study_sessions").insert({
       user_id: user.id,
-      course_id: activeSession.course_id,
+      course_id: activeSession.course_id || null,
       started_at: activeSession.started_at,
       ended_at: dayjs().toISOString(),
-      notes: null,
+      notes: stopNotes.trim() || null,
     });
     setActionBusy(false);
     setActiveSession(null);
+    setStopDialog(false);
+    setStopNotes("");
     localStorage.removeItem("broto_active_study_session");
     loadSessions();
+  }
+
+  function startFreeTimer() {
+    const session = {
+      course_id: "",
+      started_at: dayjs().toISOString(),
+    };
+    setActiveSession(session);
+    localStorage.setItem("broto_active_study_session", JSON.stringify(session));
   }
 
   useEffect(() => {
@@ -631,9 +650,16 @@ export default function Studies() {
                   Registre e acompanhe seu tempo de estudo
                 </Typography>
               </Box>
-              <IconButton size="small" onClick={() => setSessionDialog(true)}>
-                <Plus size={20} />
-              </IconButton>
+              <Stack direction="row" spacing={0}>
+                {!activeSession && (
+                  <IconButton size="small" onClick={startFreeTimer}>
+                    <Play size={18} color={palette.verdeClaro} />
+                  </IconButton>
+                )}
+                <IconButton size="small" onClick={() => setSessionDialog(true)}>
+                  <Plus size={20} />
+                </IconButton>
+              </Stack>
             </Stack>
 
             {sessions.length === 0 ? (
@@ -1646,6 +1672,77 @@ export default function Studies() {
               <CircularProgress size={20} sx={{ color: "white" }} />
             ) : (
               "Salvar"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog: finalizar timer */}
+      <Dialog
+        open={stopDialog}
+        onClose={() => setStopDialog(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 1 } }}
+      >
+        <DialogTitle sx={{ pb: 0 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: "12px",
+                bgcolor: palette.verde + "18",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Clock size={20} color={palette.verde} />
+            </Box>
+            <Box>
+              <Typography fontWeight={600} fontSize={18}>
+                Finalizar sessão
+              </Typography>
+              <Typography fontSize={12} color="text.secondary">
+                {activeSession && (
+                  <>
+                    {getCourseName(activeSession.course_id)} · {elapsed}
+                  </>
+                )}
+              </Typography>
+            </Box>
+          </Stack>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <TextField
+            label="Anotação (opcional)"
+            placeholder="O que você estudou?"
+            value={stopNotes}
+            onChange={(e) => setStopNotes(e.target.value)}
+            multiline
+            rows={3}
+            fullWidth
+            sx={{ mt: 3 }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setStopDialog(false)}
+            sx={{ color: palette.cinza }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            onClick={confirmStopTimer}
+            disabled={actionBusy}
+            sx={{ borderRadius: 2, px: 3 }}
+          >
+            {actionBusy ? (
+              <CircularProgress size={20} sx={{ color: "white" }} />
+            ) : (
+              "Salvar sessão"
             )}
           </Button>
         </DialogActions>
