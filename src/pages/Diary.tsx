@@ -459,7 +459,10 @@ export default function Diary() {
 
   async function saveEditHabit(id: string) {
     if (!editingHabitTitle.trim()) return;
-    await supabase.from("habits").update({ title: editingHabitTitle.trim() }).eq("id", id);
+    await supabase
+      .from("habits")
+      .update({ title: editingHabitTitle.trim() })
+      .eq("id", id);
     setEditingHabitId(null);
     setEditingHabitTitle("");
     loadData();
@@ -1294,7 +1297,9 @@ export default function Diary() {
                             <TextField
                               size="small"
                               value={editingHabitTitle}
-                              onChange={(e) => setEditingHabitTitle(e.target.value)}
+                              onChange={(e) =>
+                                setEditingHabitTitle(e.target.value)
+                              }
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") saveEditHabit(h.id);
                                 if (e.key === "Escape") setEditingHabitId(null);

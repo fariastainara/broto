@@ -501,15 +501,20 @@ export default function GoalsChallenges() {
                             <TextField
                               size="small"
                               value={editChallengeTitle}
-                              onChange={(e) => setEditChallengeTitle(e.target.value)}
+                              onChange={(e) =>
+                                setEditChallengeTitle(e.target.value)
+                              }
                               onKeyDown={(e) => {
                                 if (e.key === "Enter") saveEditChallenge(c.id);
-                                if (e.key === "Escape") setEditChallengeId(null);
+                                if (e.key === "Escape")
+                                  setEditChallengeId(null);
                               }}
                               onBlur={() => saveEditChallenge(c.id)}
                               autoFocus
                               fullWidth
-                              inputProps={{ style: { fontSize: 14, fontWeight: 600 } }}
+                              inputProps={{
+                                style: { fontSize: 14, fontWeight: 600 },
+                              }}
                             />
                           ) : (
                             <>

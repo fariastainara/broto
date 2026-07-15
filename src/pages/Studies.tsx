@@ -343,21 +343,30 @@ export default function Studies() {
 
   async function saveEditCourse(id: string) {
     if (!editingCourseTitle.trim()) return;
-    await supabase.from("courses").update({ title: editingCourseTitle.trim() }).eq("id", id);
+    await supabase
+      .from("courses")
+      .update({ title: editingCourseTitle.trim() })
+      .eq("id", id);
     setEditingCourseId(null);
     loadCourses();
   }
 
   async function saveEditModule(id: string) {
     if (!editingModuleTitle.trim()) return;
-    await supabase.from("course_modules").update({ title: editingModuleTitle.trim() }).eq("id", id);
+    await supabase
+      .from("course_modules")
+      .update({ title: editingModuleTitle.trim() })
+      .eq("id", id);
     setEditingModuleId(null);
     loadCourses();
   }
 
   async function saveEditLesson(id: string) {
     if (!editingLessonTitle.trim()) return;
-    await supabase.from("course_lessons").update({ title: editingLessonTitle.trim() }).eq("id", id);
+    await supabase
+      .from("course_lessons")
+      .update({ title: editingLessonTitle.trim() })
+      .eq("id", id);
     setEditingLessonId(null);
     loadCourses();
   }
@@ -859,16 +868,22 @@ export default function Studies() {
                               <TextField
                                 size="small"
                                 value={editingCourseTitle}
-                                onChange={(e) => setEditingCourseTitle(e.target.value)}
+                                onChange={(e) =>
+                                  setEditingCourseTitle(e.target.value)
+                                }
                                 onKeyDown={(e) => {
                                   e.stopPropagation();
-                                  if (e.key === "Enter") saveEditCourse(course.id);
-                                  if (e.key === "Escape") setEditingCourseId(null);
+                                  if (e.key === "Enter")
+                                    saveEditCourse(course.id);
+                                  if (e.key === "Escape")
+                                    setEditingCourseId(null);
                                 }}
                                 onBlur={() => saveEditCourse(course.id)}
                                 onClick={(e) => e.stopPropagation()}
                                 autoFocus
-                                inputProps={{ style: { fontSize: 14, fontWeight: 600 } }}
+                                inputProps={{
+                                  style: { fontSize: 14, fontWeight: 600 },
+                                }}
                               />
                             ) : (
                               <Typography
@@ -1014,17 +1029,26 @@ export default function Studies() {
                                     <TextField
                                       size="small"
                                       value={editingModuleTitle}
-                                      onChange={(e) => setEditingModuleTitle(e.target.value)}
+                                      onChange={(e) =>
+                                        setEditingModuleTitle(e.target.value)
+                                      }
                                       onKeyDown={(e) => {
                                         e.stopPropagation();
-                                        if (e.key === "Enter") saveEditModule(mod.id);
-                                        if (e.key === "Escape") setEditingModuleId(null);
+                                        if (e.key === "Enter")
+                                          saveEditModule(mod.id);
+                                        if (e.key === "Escape")
+                                          setEditingModuleId(null);
                                       }}
                                       onBlur={() => saveEditModule(mod.id)}
                                       onClick={(e) => e.stopPropagation()}
                                       autoFocus
                                       sx={{ flex: 1 }}
-                                      inputProps={{ style: { fontSize: 13, fontWeight: 600 } }}
+                                      inputProps={{
+                                        style: {
+                                          fontSize: 13,
+                                          fontWeight: 600,
+                                        },
+                                      }}
                                     />
                                   ) : (
                                     <Typography
@@ -1085,15 +1109,25 @@ export default function Studies() {
                                           <TextField
                                             size="small"
                                             value={editingLessonTitle}
-                                            onChange={(e) => setEditingLessonTitle(e.target.value)}
+                                            onChange={(e) =>
+                                              setEditingLessonTitle(
+                                                e.target.value,
+                                              )
+                                            }
                                             onKeyDown={(e) => {
-                                              if (e.key === "Enter") saveEditLesson(lesson.id);
-                                              if (e.key === "Escape") setEditingLessonId(null);
+                                              if (e.key === "Enter")
+                                                saveEditLesson(lesson.id);
+                                              if (e.key === "Escape")
+                                                setEditingLessonId(null);
                                             }}
-                                            onBlur={() => saveEditLesson(lesson.id)}
+                                            onBlur={() =>
+                                              saveEditLesson(lesson.id)
+                                            }
                                             autoFocus
                                             sx={{ flex: 1 }}
-                                            inputProps={{ style: { fontSize: 13 } }}
+                                            inputProps={{
+                                              style: { fontSize: 13 },
+                                            }}
                                           />
                                         ) : (
                                           <Typography
@@ -1101,7 +1135,9 @@ export default function Studies() {
                                             onClick={() => {
                                               if (!lesson.completed) {
                                                 setEditingLessonId(lesson.id);
-                                                setEditingLessonTitle(lesson.title);
+                                                setEditingLessonTitle(
+                                                  lesson.title,
+                                                );
                                               }
                                             }}
                                             sx={{
@@ -1112,7 +1148,9 @@ export default function Studies() {
                                               color: lesson.completed
                                                 ? "text.secondary"
                                                 : "text.primary",
-                                              cursor: lesson.completed ? "default" : "pointer",
+                                              cursor: lesson.completed
+                                                ? "default"
+                                                : "pointer",
                                             }}
                                           >
                                             {lesson.title}
