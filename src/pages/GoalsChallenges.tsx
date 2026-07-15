@@ -16,6 +16,7 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
+  Collapse,
 } from "@mui/material";
 import {
   Target,
@@ -25,6 +26,9 @@ import {
   CheckCircle2,
   Circle,
   Pencil,
+  ChevronDown,
+  ChevronRight,
+  Download,
 } from "lucide-react";
 import dayjs from "dayjs";
 import "dayjs/locale/pt-br";
@@ -33,6 +37,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { palette } from "../theme";
 import PageHeader from "../components/PageHeader";
 import BrotoLoader from "../components/BrotoLoader";
+import { exportGoalsPdf } from "../lib/exportGoalsPdf";
 import type { Goal, Challenge, ChallengeCheckin } from "../types";
 
 dayjs.locale("pt-br");
@@ -53,6 +58,12 @@ export default function GoalsChallenges() {
   const [chTitle, setChTitle] = useState("");
   const [chDays, setChDays] = useState("21");
   const [actionBusy, setActionBusy] = useState(false);
+  const [showCompletedGoals, setShowCompletedGoals] = useState(false);
+
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportStart, setExportStart] = useState(dayjs().startOf("month").format("YYYY-MM-DD"));
+  const [exportEnd, setExportEnd] = useState(dayjs().format("YYYY-MM-DD"));
+  const [exporting, setExporting] = useState(false);
 
   const [editGoalDialog, setEditGoalDialog] = useState(false);
   const [editGoalId, setEditGoalId] = useState<string | null>(null);
@@ -198,11 +209,19 @@ export default function GoalsChallenges() {
 
   return (
     <Box>
-      <PageHeader
-        eyebrow="Metas & Desafios"
-        title="Objetivos"
-        subtitle={`${activeGoals} meta${activeGoals !== 1 ? "s" : ""} ativa${activeGoals !== 1 ? "s" : ""} · ${activeChallenges} desafio${activeChallenges !== 1 ? "s" : ""}`}
-      />
+      <Stack direction="row" alignItems="flex-start" justifyContent="space-between">
+        <PageHeader
+          eyebrow="Metas & Desafios"
+          title="Objetivos"
+          subtitle={`${activeGoals} meta${activeGoals !== 1 ? "s" : ""} ativa${activeGoals !== 1 ? "s" : ""} · ${activeChallenges} desafio${activeChallenges !== 1 ? "s" : ""}`}
+        />
+        <IconButton
+          onClick={() => setExportDialogOpen(true)}
+          title="Exportar PDF"
+        >
+          <Download size={20} color={palette.verde} />
+        </IconButton>
+      </Stack>
 
       {/* Resumo rápido */}
       <Stack
@@ -329,59 +348,109 @@ export default function GoalsChallenges() {
                 </Button>
               </Box>
             ) : (
-              <Stack divider={<Divider />} sx={{ mt: 2 }}>
-                {goals.map((g) => {
-                  const done = g.status === "concluida";
-                  return (
+              <>
+                <Stack divider={<Divider />} sx={{ mt: 2 }}>
+                  {goals.filter((g) => g.status !== "concluida").map((g) => {
+                    return (
+                      <Stack
+                        key={g.id}
+                        direction="row"
+                        alignItems="center"
+                        spacing={1}
+                        sx={{ py: 1 }}
+                      >
+                        <IconButton size="small" onClick={() => toggleGoal(g)}>
+                          <Circle size={20} color={palette.cinza} />
+                        </IconButton>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography
+                            fontWeight={600}
+                            fontSize={14}
+                          >
+                            {g.title}
+                          </Typography>
+                          {g.target_date && (
+                            <Typography fontSize={12} color="text.secondary">
+                              Prazo: {dayjs(g.target_date).format("DD/MM/YYYY")}
+                            </Typography>
+                          )}
+                        </Box>
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            setEditGoalId(g.id);
+                            setEditGoalTitle(g.title);
+                            setEditGoalDate(g.target_date || "");
+                            setEditGoalDialog(true);
+                          }}
+                        >
+                          <Pencil size={14} color={palette.cinza} />
+                        </IconButton>
+                        <IconButton size="small" onClick={() => removeGoal(g.id)}>
+                          <Trash2 size={15} color={palette.cinza} />
+                        </IconButton>
+                      </Stack>
+                    );
+                  })}
+                </Stack>
+
+                {/* Metas concluídas — colapsável */}
+                {goals.filter((g) => g.status === "concluida").length > 0 && (
+                  <Box sx={{ mt: 1, pl: 0 }}>
                     <Stack
-                      key={g.id}
                       direction="row"
                       alignItems="center"
                       spacing={1}
-                      sx={{ py: 1 }}
+                      onClick={() => setShowCompletedGoals(!showCompletedGoals)}
+                      sx={{ cursor: "pointer", py: 1 }}
                     >
-                      <IconButton size="small" onClick={() => toggleGoal(g)}>
-                        {done ? (
-                          <CheckCircle2 size={20} color={palette.verde} />
-                        ) : (
-                          <Circle size={20} color={palette.cinza} />
-                        )}
-                      </IconButton>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography
-                          fontWeight={600}
-                          fontSize={14}
-                          sx={{
-                            textDecoration: done ? "line-through" : "none",
-                            color: done ? "text.secondary" : "text.primary",
-                          }}
-                        >
-                          {g.title}
-                        </Typography>
-                        {g.target_date && (
-                          <Typography fontSize={12} color="text.secondary">
-                            Prazo: {dayjs(g.target_date).format("DD/MM/YYYY")}
-                          </Typography>
-                        )}
-                      </Box>
-                      <IconButton
-                        size="small"
-                        onClick={() => {
-                          setEditGoalId(g.id);
-                          setEditGoalTitle(g.title);
-                          setEditGoalDate(g.target_date || "");
-                          setEditGoalDialog(true);
-                        }}
-                      >
-                        <Pencil size={14} color={palette.cinza} />
-                      </IconButton>
-                      <IconButton size="small" onClick={() => removeGoal(g.id)}>
-                        <Trash2 size={15} color={palette.cinza} />
-                      </IconButton>
+                      {showCompletedGoals ? (
+                        <ChevronDown size={16} color={palette.cinza} />
+                      ) : (
+                        <ChevronRight size={16} color={palette.cinza} />
+                      )}
+                      <CheckCircle2 size={15} color={palette.verdeClaro} />
+                      <Typography fontSize={13} fontWeight={600} color="text.secondary">
+                        {goals.filter((g) => g.status === "concluida").length} alcançada{goals.filter((g) => g.status === "concluida").length !== 1 ? "s" : ""}
+                      </Typography>
                     </Stack>
-                  );
-                })}
-              </Stack>
+                    <Collapse in={showCompletedGoals}>
+                      <Stack divider={<Divider />}>
+                        {goals.filter((g) => g.status === "concluida").map((g) => (
+                          <Stack
+                            key={g.id}
+                            direction="row"
+                            alignItems="center"
+                            spacing={1}
+                            sx={{ py: 1, opacity: 0.6 }}
+                          >
+                            <IconButton size="small" onClick={() => toggleGoal(g)}>
+                              <CheckCircle2 size={20} color={palette.verde} />
+                            </IconButton>
+                            <Box sx={{ flex: 1 }}>
+                              <Typography
+                                fontWeight={600}
+                                fontSize={14}
+                                sx={{ textDecoration: "line-through", color: "text.secondary" }}
+                              >
+                                {g.title}
+                              </Typography>
+                              {g.target_date && (
+                                <Typography fontSize={12} color="text.secondary">
+                                  Prazo: {dayjs(g.target_date).format("DD/MM/YYYY")}
+                                </Typography>
+                              )}
+                            </Box>
+                            <IconButton size="small" onClick={() => removeGoal(g.id)}>
+                              <Trash2 size={15} color={palette.cinza} />
+                            </IconButton>
+                          </Stack>
+                        ))}
+                      </Stack>
+                    </Collapse>
+                  </Box>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
@@ -868,6 +937,133 @@ export default function GoalsChallenges() {
             sx={{ borderRadius: 2, px: 3 }}
           >
             Salvar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog: exportar PDF */}
+      <Dialog
+        open={exportDialogOpen}
+        onClose={() => setExportDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 1 } }}
+      >
+        <DialogTitle sx={{ pb: 0 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: "12px",
+                bgcolor: palette.verde + "18",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Download size={20} color={palette.verde} />
+            </Box>
+            <Box>
+              <Typography fontWeight={600} fontSize={18}>
+                Exportar metas
+              </Typography>
+              <Typography fontSize={12} color="text.secondary">
+                Gere um PDF com metas e desafios
+              </Typography>
+            </Box>
+          </Stack>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <Stack spacing={2} sx={{ mt: 3 }}>
+            <TextField
+              label="Data início"
+              type="date"
+              value={exportStart}
+              onChange={(e) => setExportStart(e.target.value)}
+              fullWidth
+              InputLabelProps={{ shrink: !!exportStart || undefined }}
+              sx={{
+                '&:focus-within .MuiInputLabel-root:not(.MuiInputLabel-shrink)': {
+                  transform: 'translate(14px, -9px) scale(0.75)',
+                  color: 'primary.main',
+                },
+                '& input[type="date"]::-webkit-datetime-edit': {
+                  color: exportStart ? "inherit" : "transparent",
+                },
+                '&:focus-within input[type="date"]::-webkit-datetime-edit': {
+                  color: "inherit",
+                },
+              }}
+            />
+            <TextField
+              label="Data fim"
+              type="date"
+              value={exportEnd}
+              onChange={(e) => setExportEnd(e.target.value)}
+              fullWidth
+              InputLabelProps={{ shrink: !!exportEnd || undefined }}
+              sx={{
+                '&:focus-within .MuiInputLabel-root:not(.MuiInputLabel-shrink)': {
+                  transform: 'translate(14px, -9px) scale(0.75)',
+                  color: 'primary.main',
+                },
+                '& input[type="date"]::-webkit-datetime-edit': {
+                  color: exportEnd ? "inherit" : "transparent",
+                },
+                '&:focus-within input[type="date"]::-webkit-datetime-edit': {
+                  color: "inherit",
+                },
+              }}
+            />
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {[
+                { label: "Este mês", start: dayjs().startOf("month"), end: dayjs() },
+                { label: "Mês passado", start: dayjs().subtract(1, "month").startOf("month"), end: dayjs().subtract(1, "month").endOf("month") },
+                { label: "Histórico completo", start: dayjs("2020-01-01"), end: dayjs() },
+              ].map((p) => (
+                <Chip
+                  key={p.label}
+                  label={p.label}
+                  size="small"
+                  onClick={() => {
+                    setExportStart(p.start.format("YYYY-MM-DD"));
+                    setExportEnd(p.end.format("YYYY-MM-DD"));
+                  }}
+                  sx={{
+                    bgcolor: "rgba(0,0,0,0.04)",
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
+                  }}
+                />
+              ))}
+            </Stack>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setExportDialogOpen(false)}
+            sx={{ color: palette.cinza }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            disabled={!exportStart || !exportEnd || exporting}
+            onClick={async () => {
+              setExporting(true);
+              await exportGoalsPdf(user!.id, exportStart, exportEnd);
+              setExporting(false);
+              setExportDialogOpen(false);
+            }}
+            sx={{ borderRadius: 2, px: 3 }}
+          >
+            {exporting ? (
+              <CircularProgress size={20} sx={{ color: "white" }} />
+            ) : (
+              "Gerar PDF"
+            )}
           </Button>
         </DialogActions>
       </Dialog>

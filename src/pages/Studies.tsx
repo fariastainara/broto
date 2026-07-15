@@ -37,6 +37,7 @@ import {
   PlayCircle,
   CheckCircle2,
   PauseCircle,
+  Download,
   type LucideIcon,
 } from "lucide-react";
 import dayjs from "dayjs";
@@ -46,6 +47,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { palette } from "../theme";
 import PageHeader from "../components/PageHeader";
 import BrotoLoader from "../components/BrotoLoader";
+import { exportStudiesPdf } from "../lib/exportStudiesPdf";
 import type {
   Course,
   CourseModule,
@@ -87,6 +89,7 @@ export default function Studies() {
 
   const [expandedCourse, setExpandedCourse] = useState<string | null>(null);
   const [expandedModule, setExpandedModule] = useState<string | null>(null);
+  const [showCompleted, setShowCompleted] = useState(false);
 
   const [statusMenuAnchor, setStatusMenuAnchor] = useState<null | HTMLElement>(
     null,
@@ -145,6 +148,13 @@ export default function Studies() {
 
   const [stopDialog, setStopDialog] = useState(false);
   const [stopNotes, setStopNotes] = useState("");
+
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportStart, setExportStart] = useState(
+    dayjs().startOf("month").format("YYYY-MM-DD"),
+  );
+  const [exportEnd, setExportEnd] = useState(dayjs().format("YYYY-MM-DD"));
+  const [exporting, setExporting] = useState(false);
 
   async function loadCourses() {
     if (!user) return;
@@ -481,11 +491,23 @@ export default function Studies() {
 
   return (
     <Box>
-      <PageHeader
-        eyebrow="Estudos"
-        title="Meus cursos"
-        subtitle={`${totalCourses} curso${totalCourses !== 1 ? "s" : ""} · ${weekHours}h esta semana`}
-      />
+      <Stack
+        direction="row"
+        alignItems="flex-start"
+        justifyContent="space-between"
+      >
+        <PageHeader
+          eyebrow="Estudos"
+          title="Meus cursos"
+          subtitle={`${totalCourses} curso${totalCourses !== 1 ? "s" : ""} · ${weekHours}h esta semana`}
+        />
+        <IconButton
+          onClick={() => setExportDialogOpen(true)}
+          title="Exportar PDF"
+        >
+          <Download size={20} color={palette.verde} />
+        </IconButton>
+      </Stack>
 
       {/* Resumo rápido */}
       <Stack
@@ -860,497 +882,673 @@ export default function Studies() {
                 </Button>
               </Box>
             ) : (
-              <Stack divider={<Divider />} sx={{ mt: 2 }}>
-                {courses.map((course) => {
-                  const isExpanded = expandedCourse === course.id;
-                  const progressPct =
-                    course.totalLessons > 0
-                      ? Math.round(
-                          (course.completedLessons / course.totalLessons) * 100,
-                        )
-                      : 0;
-                  const courseMods = modules.filter(
-                    (m) => m.course_id === course.id,
-                  );
+              <>
+                <Stack divider={<Divider />} sx={{ mt: 2 }}>
+                  {courses
+                    .filter((c) => c.status !== "concluido")
+                    .map((course) => {
+                      const isExpanded = expandedCourse === course.id;
+                      const progressPct =
+                        course.totalLessons > 0
+                          ? Math.round(
+                              (course.completedLessons / course.totalLessons) *
+                                100,
+                            )
+                          : 0;
+                      const courseMods = modules.filter(
+                        (m) => m.course_id === course.id,
+                      );
 
-                  return (
-                    <Box key={course.id} sx={{ py: 1.5 }}>
-                      <Stack
-                        direction="row"
-                        alignItems="flex-start"
-                        spacing={1}
-                        sx={{ cursor: "pointer" }}
-                        onClick={() =>
-                          setExpandedCourse(isExpanded ? null : course.id)
-                        }
-                      >
-                        <Box sx={{ pt: 0.3 }}>
-                          {isExpanded ? (
-                            <ChevronDown size={18} color={palette.cinza} />
-                          ) : (
-                            <ChevronRight size={18} color={palette.cinza} />
-                          )}
-                        </Box>
-                        <Box sx={{ flex: 1, gap: 1 }}>
+                      return (
+                        <Box key={course.id} sx={{ py: 1.5 }}>
                           <Stack
                             direction="row"
-                            alignItems="center"
+                            alignItems="flex-start"
                             spacing={1}
+                            sx={{ cursor: "pointer" }}
+                            onClick={() =>
+                              setExpandedCourse(isExpanded ? null : course.id)
+                            }
                           >
-                            {editingCourseId === course.id ? (
-                              <TextField
-                                variant="standard"
+                            <Box sx={{ pt: 0.3 }}>
+                              {isExpanded ? (
+                                <ChevronDown size={18} color={palette.cinza} />
+                              ) : (
+                                <ChevronRight size={18} color={palette.cinza} />
+                              )}
+                            </Box>
+                            <Box sx={{ flex: 1, gap: 1 }}>
+                              <Stack
+                                direction="row"
+                                alignItems="center"
+                                spacing={1}
+                              >
+                                {editingCourseId === course.id ? (
+                                  <TextField
+                                    variant="standard"
+                                    size="small"
+                                    value={editingCourseTitle}
+                                    onChange={(e) =>
+                                      setEditingCourseTitle(e.target.value)
+                                    }
+                                    onKeyDown={(e) => {
+                                      e.stopPropagation();
+                                      if (e.key === "Enter")
+                                        saveEditCourse(course.id);
+                                      if (e.key === "Escape")
+                                        setEditingCourseId(null);
+                                    }}
+                                    onBlur={() => saveEditCourse(course.id)}
+                                    onClick={(e) => e.stopPropagation()}
+                                    autoFocus
+                                    InputProps={{ disableUnderline: true }}
+                                    inputProps={{
+                                      style: { fontSize: 14, fontWeight: 600 },
+                                    }}
+                                  />
+                                ) : (
+                                  <Typography
+                                    fontWeight={600}
+                                    fontSize={14}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingCourseId(course.id);
+                                      setEditingCourseTitle(course.title);
+                                    }}
+                                    sx={{ cursor: "pointer" }}
+                                  >
+                                    {course.title}
+                                  </Typography>
+                                )}
+                                <Chip
+                                  size="small"
+                                  label={
+                                    COURSE_STATUS_OPTIONS[course.status].label
+                                  }
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setStatusMenuAnchor(e.currentTarget);
+                                    setStatusMenuCourseId(course.id);
+                                  }}
+                                  sx={{
+                                    bgcolor:
+                                      COURSE_STATUS_OPTIONS[course.status]
+                                        .color + "18",
+                                    color:
+                                      COURSE_STATUS_OPTIONS[course.status]
+                                        .color,
+                                    fontSize: 11,
+                                    height: 22,
+                                    fontWeight: 600,
+                                    cursor: "pointer",
+                                    "&:hover": { filter: "brightness(0.92)" },
+                                  }}
+                                />
+                              </Stack>
+                              {(course.platform || course.instructor) && (
+                                <Typography
+                                  fontSize={12}
+                                  color="text.secondary"
+                                  sx={{ mt: 0.2 }}
+                                >
+                                  {course.platform}
+                                  {course.platform &&
+                                    course.instructor &&
+                                    " · "}
+                                  {course.instructor}
+                                </Typography>
+                              )}
+                            </Box>
+                            <Stack alignItems="flex-end" spacing={0.3}>
+                              <Typography fontSize={12} color="text.secondary">
+                                {course.completedLessons}/{course.totalLessons}{" "}
+                                aulas
+                              </Typography>
+                              <Box sx={{ width: 80 }}>
+                                <LinearProgress
+                                  variant="determinate"
+                                  value={progressPct}
+                                  sx={{
+                                    height: 5,
+                                    borderRadius: 3,
+                                    bgcolor: "rgba(0,0,0,0.06)",
+                                    "& .MuiLinearProgress-bar": {
+                                      bgcolor:
+                                        progressPct === 100
+                                          ? "#6366F1"
+                                          : palette.verdeClaro,
+                                      borderRadius: 3,
+                                    },
+                                  }}
+                                />
+                              </Box>
+                            </Stack>
+                            <Stack direction="row" spacing={0.5}>
+                              {!activeSession && (
+                                <IconButton
+                                  size="small"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStartTimer(course.id);
+                                  }}
+                                  title="Iniciar sessão"
+                                >
+                                  <Play size={15} color={palette.verdeClaro} />
+                                </IconButton>
+                              )}
+                              <IconButton
                                 size="small"
-                                value={editingCourseTitle}
-                                onChange={(e) =>
-                                  setEditingCourseTitle(e.target.value)
-                                }
-                                onKeyDown={(e) => {
-                                  e.stopPropagation();
-                                  if (e.key === "Enter")
-                                    saveEditCourse(course.id);
-                                  if (e.key === "Escape")
-                                    setEditingCourseId(null);
-                                }}
-                                onBlur={() => saveEditCourse(course.id)}
-                                onClick={(e) => e.stopPropagation()}
-                                autoFocus
-                                InputProps={{ disableUnderline: true }}
-                                inputProps={{
-                                  style: { fontSize: 14, fontWeight: 600 },
-                                }}
-                              />
-                            ) : (
-                              <Typography
-                                fontWeight={600}
-                                fontSize={14}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setEditingCourseId(course.id);
-                                  setEditingCourseTitle(course.title);
+                                  handleDeleteCourse(course.id);
                                 }}
-                                sx={{ cursor: "pointer" }}
                               >
-                                {course.title}
-                              </Typography>
-                            )}
-                            <Chip
-                              size="small"
-                              label={COURSE_STATUS_OPTIONS[course.status].label}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setStatusMenuAnchor(e.currentTarget);
-                                setStatusMenuCourseId(course.id);
-                              }}
-                              sx={{
-                                bgcolor:
-                                  COURSE_STATUS_OPTIONS[course.status].color +
-                                  "18",
-                                color:
-                                  COURSE_STATUS_OPTIONS[course.status].color,
-                                fontSize: 11,
-                                height: 22,
-                                fontWeight: 600,
-                                cursor: "pointer",
-                                "&:hover": { filter: "brightness(0.92)" },
-                              }}
-                            />
+                                <Trash2 size={15} color={palette.cinza} />
+                              </IconButton>
+                            </Stack>
                           </Stack>
-                          {(course.platform || course.instructor) && (
-                            <Typography
-                              fontSize={12}
-                              color="text.secondary"
-                              sx={{ mt: 0.2 }}
-                            >
-                              {course.platform}
-                              {course.platform && course.instructor && " · "}
-                              {course.instructor}
-                            </Typography>
-                          )}
+
+                          <Collapse in={isExpanded}>
+                            <Box sx={{ pl: 3.5, pt: 1.5 }}>
+                              {courseMods.length === 0 && (
+                                <Typography
+                                  fontSize={12}
+                                  color="text.secondary"
+                                  sx={{ mb: 1 }}
+                                >
+                                  Nenhum módulo ainda.
+                                </Typography>
+                              )}
+
+                              {courseMods.map((mod) => {
+                                const modLessons = lessons.filter(
+                                  (l) => l.module_id === mod.id,
+                                );
+                                const isModExpanded = expandedModule === mod.id;
+                                const modCompleted = modLessons.filter(
+                                  (l) => l.completed,
+                                ).length;
+                                return (
+                                  <Box key={mod.id} sx={{ mb: 1 }}>
+                                    <Stack
+                                      direction="row"
+                                      alignItems="center"
+                                      spacing={1}
+                                      sx={{ cursor: "pointer", py: 0.5 }}
+                                      onClick={() =>
+                                        setExpandedModule(
+                                          isModExpanded ? null : mod.id,
+                                        )
+                                      }
+                                    >
+                                      {isModExpanded ? (
+                                        <ChevronDown
+                                          size={15}
+                                          color={palette.cinza}
+                                        />
+                                      ) : (
+                                        <ChevronRight
+                                          size={15}
+                                          color={palette.cinza}
+                                        />
+                                      )}
+                                      {editingModuleId === mod.id ? (
+                                        <TextField
+                                          variant="standard"
+                                          size="small"
+                                          value={editingModuleTitle}
+                                          onChange={(e) =>
+                                            setEditingModuleTitle(
+                                              e.target.value,
+                                            )
+                                          }
+                                          onKeyDown={(e) => {
+                                            e.stopPropagation();
+                                            if (e.key === "Enter")
+                                              saveEditModule(mod.id);
+                                            if (e.key === "Escape")
+                                              setEditingModuleId(null);
+                                          }}
+                                          onBlur={() => saveEditModule(mod.id)}
+                                          onClick={(e) => e.stopPropagation()}
+                                          autoFocus
+                                          sx={{ flex: 1 }}
+                                          InputProps={{
+                                            disableUnderline: true,
+                                          }}
+                                          inputProps={{
+                                            style: {
+                                              fontSize: 13,
+                                              fontWeight: 600,
+                                            },
+                                          }}
+                                        />
+                                      ) : (
+                                        <Typography
+                                          fontWeight={600}
+                                          fontSize={13}
+                                          sx={{ flex: 1, cursor: "pointer" }}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEditingModuleId(mod.id);
+                                            setEditingModuleTitle(mod.title);
+                                          }}
+                                        >
+                                          {mod.title}
+                                        </Typography>
+                                      )}
+                                      <Typography
+                                        fontSize={11}
+                                        color="text.secondary"
+                                      >
+                                        {modCompleted}/{modLessons.length}
+                                      </Typography>
+                                      <IconButton
+                                        size="small"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDeleteModule(mod.id);
+                                        }}
+                                      >
+                                        <Trash2
+                                          size={13}
+                                          color={palette.cinza}
+                                        />
+                                      </IconButton>
+                                    </Stack>
+
+                                    <Collapse in={isModExpanded}>
+                                      <Box sx={{ pl: 3 }}>
+                                        {modLessons.map((lesson) => (
+                                          <Stack
+                                            key={lesson.id}
+                                            direction="row"
+                                            alignItems="center"
+                                            spacing={0.5}
+                                            sx={{ py: 0.3 }}
+                                          >
+                                            <Checkbox
+                                              size="small"
+                                              checked={lesson.completed}
+                                              onChange={() =>
+                                                handleToggleLesson(lesson)
+                                              }
+                                              sx={{
+                                                p: 0.3,
+                                                color: palette.verdeClaro,
+                                                "&.Mui-checked": {
+                                                  color: palette.verde,
+                                                },
+                                              }}
+                                            />
+                                            {editingLessonId === lesson.id ? (
+                                              <TextField
+                                                variant="standard"
+                                                size="small"
+                                                value={editingLessonTitle}
+                                                onChange={(e) =>
+                                                  setEditingLessonTitle(
+                                                    e.target.value,
+                                                  )
+                                                }
+                                                onKeyDown={(e) => {
+                                                  if (e.key === "Enter")
+                                                    saveEditLesson(lesson.id);
+                                                  if (e.key === "Escape")
+                                                    setEditingLessonId(null);
+                                                }}
+                                                onBlur={() =>
+                                                  saveEditLesson(lesson.id)
+                                                }
+                                                autoFocus
+                                                sx={{ flex: 1 }}
+                                                InputProps={{
+                                                  disableUnderline: true,
+                                                }}
+                                                inputProps={{
+                                                  style: { fontSize: 13 },
+                                                }}
+                                              />
+                                            ) : (
+                                              <Typography
+                                                fontSize={13}
+                                                onClick={() => {
+                                                  if (!lesson.completed) {
+                                                    setEditingLessonId(
+                                                      lesson.id,
+                                                    );
+                                                    setEditingLessonTitle(
+                                                      lesson.title,
+                                                    );
+                                                  }
+                                                }}
+                                                sx={{
+                                                  flex: 1,
+                                                  textDecoration:
+                                                    lesson.completed
+                                                      ? "line-through"
+                                                      : "none",
+                                                  color: lesson.completed
+                                                    ? "text.secondary"
+                                                    : "text.primary",
+                                                  cursor: lesson.completed
+                                                    ? "default"
+                                                    : "pointer",
+                                                }}
+                                              >
+                                                {lesson.title}
+                                              </Typography>
+                                            )}
+                                            {lesson.duration_min && (
+                                              <Typography
+                                                fontSize={11}
+                                                color="text.secondary"
+                                              >
+                                                {lesson.duration_min}min
+                                              </Typography>
+                                            )}
+                                            <IconButton
+                                              size="small"
+                                              onClick={() =>
+                                                handleDeleteLesson(lesson.id)
+                                              }
+                                            >
+                                              <Trash2
+                                                size={12}
+                                                color={palette.cinza}
+                                              />
+                                            </IconButton>
+                                          </Stack>
+                                        ))}
+
+                                        {addingLessonModule === mod.id ? (
+                                          <Stack
+                                            direction="row"
+                                            spacing={1}
+                                            sx={{ mt: 0.5 }}
+                                          >
+                                            <TextField
+                                              size="small"
+                                              placeholder="Aula"
+                                              value={newLessonTitle}
+                                              onChange={(e) =>
+                                                setNewLessonTitle(
+                                                  e.target.value,
+                                                )
+                                              }
+                                              sx={{ flex: 1 }}
+                                            />
+                                            <TextField
+                                              size="small"
+                                              placeholder="Min"
+                                              type="number"
+                                              value={newLessonDuration}
+                                              onChange={(e) =>
+                                                setNewLessonDuration(
+                                                  e.target.value,
+                                                )
+                                              }
+                                              sx={{ width: 70 }}
+                                            />
+                                            <Button
+                                              size="small"
+                                              variant="contained"
+                                              onClick={() =>
+                                                handleAddLesson(mod.id)
+                                              }
+                                              disabled={actionBusy}
+                                              sx={{ borderRadius: 2 }}
+                                            >
+                                              {actionBusy ? (
+                                                <CircularProgress
+                                                  size={20}
+                                                  sx={{ color: "white" }}
+                                                />
+                                              ) : (
+                                                "OK"
+                                              )}
+                                            </Button>
+                                            <Button
+                                              size="small"
+                                              onClick={() =>
+                                                setAddingLessonModule(null)
+                                              }
+                                              sx={{ color: palette.cinza }}
+                                            >
+                                              ✕
+                                            </Button>
+                                          </Stack>
+                                        ) : (
+                                          <Button
+                                            size="small"
+                                            startIcon={<Plus size={13} />}
+                                            onClick={() => {
+                                              setAddingLessonModule(mod.id);
+                                              setNewLessonTitle("");
+                                              setNewLessonDuration("");
+                                            }}
+                                            sx={{
+                                              mt: 0.5,
+                                              fontSize: 12,
+                                              color: palette.cinza,
+                                            }}
+                                          >
+                                            Aula
+                                          </Button>
+                                        )}
+                                      </Box>
+                                    </Collapse>
+                                  </Box>
+                                );
+                              })}
+
+                              {addingModuleCourse === course.id ? (
+                                <Stack
+                                  direction="row"
+                                  spacing={1}
+                                  sx={{ mt: 1 }}
+                                >
+                                  <TextField
+                                    size="small"
+                                    placeholder="Módulo"
+                                    value={newModuleTitle}
+                                    onChange={(e) =>
+                                      setNewModuleTitle(e.target.value)
+                                    }
+                                    sx={{ flex: 1 }}
+                                  />
+                                  <Button
+                                    size="small"
+                                    variant="contained"
+                                    onClick={() => handleAddModule(course.id)}
+                                    disabled={actionBusy}
+                                    sx={{ borderRadius: 2 }}
+                                  >
+                                    {actionBusy ? (
+                                      <CircularProgress
+                                        size={20}
+                                        sx={{ color: "white" }}
+                                      />
+                                    ) : (
+                                      "OK"
+                                    )}
+                                  </Button>
+                                  <Button
+                                    size="small"
+                                    onClick={() => setAddingModuleCourse(null)}
+                                    sx={{ color: palette.cinza }}
+                                  >
+                                    ✕
+                                  </Button>
+                                </Stack>
+                              ) : (
+                                <Button
+                                  size="small"
+                                  startIcon={<Plus size={13} />}
+                                  onClick={() => {
+                                    setAddingModuleCourse(course.id);
+                                    setNewModuleTitle("");
+                                  }}
+                                  sx={{
+                                    mt: 1,
+                                    fontSize: 12,
+                                    color: palette.cinza,
+                                  }}
+                                >
+                                  Módulo
+                                </Button>
+                              )}
+                            </Box>
+                          </Collapse>
                         </Box>
-                        <Stack alignItems="flex-end" spacing={0.3}>
-                          <Typography fontSize={12} color="text.secondary">
-                            {course.completedLessons}/{course.totalLessons}{" "}
-                            aulas
-                          </Typography>
-                          <Box sx={{ width: 80 }}>
-                            <LinearProgress
-                              variant="determinate"
-                              value={progressPct}
-                              sx={{
-                                height: 5,
-                                borderRadius: 3,
-                                bgcolor: "rgba(0,0,0,0.06)",
-                                "& .MuiLinearProgress-bar": {
-                                  bgcolor:
-                                    progressPct === 100
-                                      ? "#6366F1"
-                                      : palette.verdeClaro,
-                                  borderRadius: 3,
-                                },
-                              }}
-                            />
-                          </Box>
-                        </Stack>
-                        <Stack direction="row" spacing={0.5}>
-                          {!activeSession && (
-                            <IconButton
-                              size="small"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleStartTimer(course.id);
-                              }}
-                              title="Iniciar sessão"
-                            >
-                              <Play size={15} color={palette.verdeClaro} />
-                            </IconButton>
-                          )}
-                          <IconButton
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteCourse(course.id);
-                            }}
-                          >
-                            <Trash2 size={15} color={palette.cinza} />
-                          </IconButton>
-                        </Stack>
-                      </Stack>
+                      );
+                    })}
+                </Stack>
 
-                      <Collapse in={isExpanded}>
-                        <Box sx={{ pl: 3.5, pt: 1.5 }}>
-                          {courseMods.length === 0 && (
-                            <Typography
-                              fontSize={12}
-                              color="text.secondary"
-                              sx={{ mb: 1 }}
-                            >
-                              Nenhum módulo ainda.
-                            </Typography>
-                          )}
-
-                          {courseMods.map((mod) => {
-                            const modLessons = lessons.filter(
-                              (l) => l.module_id === mod.id,
+                {/* Cursos concluídos — colapsável */}
+                {courses.filter((c) => c.status === "concluido").length > 0 && (
+                  <Box sx={{ mt: 2 }}>
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      spacing={1}
+                      onClick={() => setShowCompleted(!showCompleted)}
+                      sx={{ cursor: "pointer", py: 1, pl: 1 }}
+                    >
+                      {showCompleted ? (
+                        <ChevronDown size={16} color={palette.cinza} />
+                      ) : (
+                        <ChevronRight size={16} color={palette.cinza} />
+                      )}
+                      <CheckCircle2 size={15} color={palette.verdeClaro} />
+                      <Typography
+                        fontSize={13}
+                        fontWeight={600}
+                        color="text.secondary"
+                      >
+                        {courses.filter((c) => c.status === "concluido").length}{" "}
+                        concluído
+                        {courses.filter((c) => c.status === "concluido")
+                          .length !== 1
+                          ? "s"
+                          : ""}
+                      </Typography>
+                    </Stack>
+                    <Collapse in={showCompleted}>
+                      <Stack divider={<Divider />}>
+                        {courses
+                          .filter((c) => c.status === "concluido")
+                          .map((course) => {
+                            const isExpanded = expandedCourse === course.id;
+                            const progressPct =
+                              course.totalLessons > 0
+                                ? Math.round(
+                                    (course.completedLessons /
+                                      course.totalLessons) *
+                                      100,
+                                  )
+                                : 0;
+                            const courseMods = modules.filter(
+                              (m) => m.course_id === course.id,
                             );
-                            const isModExpanded = expandedModule === mod.id;
-                            const modCompleted = modLessons.filter(
-                              (l) => l.completed,
-                            ).length;
+
                             return (
-                              <Box key={mod.id} sx={{ mb: 1 }}>
+                              <Box
+                                key={course.id}
+                                sx={{ py: 1.5, opacity: 0.7 }}
+                              >
                                 <Stack
                                   direction="row"
                                   alignItems="center"
                                   spacing={1}
-                                  sx={{ cursor: "pointer", py: 0.5 }}
+                                  sx={{ cursor: "pointer" }}
                                   onClick={() =>
-                                    setExpandedModule(
-                                      isModExpanded ? null : mod.id,
+                                    setExpandedCourse(
+                                      isExpanded ? null : course.id,
                                     )
                                   }
                                 >
-                                  {isModExpanded ? (
-                                    <ChevronDown
-                                      size={15}
-                                      color={palette.cinza}
-                                    />
-                                  ) : (
-                                    <ChevronRight
-                                      size={15}
-                                      color={palette.cinza}
-                                    />
-                                  )}
-                                  {editingModuleId === mod.id ? (
-                                    <TextField
-                                      variant="standard"
-                                      size="small"
-                                      value={editingModuleTitle}
-                                      onChange={(e) =>
-                                        setEditingModuleTitle(e.target.value)
-                                      }
-                                      onKeyDown={(e) => {
-                                        e.stopPropagation();
-                                        if (e.key === "Enter")
-                                          saveEditModule(mod.id);
-                                        if (e.key === "Escape")
-                                          setEditingModuleId(null);
-                                      }}
-                                      onBlur={() => saveEditModule(mod.id)}
-                                      onClick={(e) => e.stopPropagation()}
-                                      autoFocus
-                                      sx={{ flex: 1 }}
-                                      InputProps={{ disableUnderline: true }}
-                                      inputProps={{
-                                        style: {
-                                          fontSize: 13,
-                                          fontWeight: 600,
-                                        },
-                                      }}
-                                    />
-                                  ) : (
-                                    <Typography
-                                      fontWeight={600}
-                                      fontSize={13}
-                                      sx={{ flex: 1, cursor: "pointer" }}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setEditingModuleId(mod.id);
-                                        setEditingModuleTitle(mod.title);
-                                      }}
+                                  <Box sx={{ pt: 0.3 }}>
+                                    {isExpanded ? (
+                                      <ChevronDown
+                                        size={18}
+                                        color={palette.cinza}
+                                      />
+                                    ) : (
+                                      <ChevronRight
+                                        size={18}
+                                        color={palette.cinza}
+                                      />
+                                    )}
+                                  </Box>
+                                  <Box sx={{ flex: 1 }}>
+                                    <Stack
+                                      direction="row"
+                                      alignItems="center"
+                                      spacing={1}
                                     >
-                                      {mod.title}
-                                    </Typography>
-                                  )}
-                                  <Typography
-                                    fontSize={11}
-                                    color="text.secondary"
-                                  >
-                                    {modCompleted}/{modLessons.length}
-                                  </Typography>
+                                      <Typography
+                                        fontWeight={600}
+                                        fontSize={14}
+                                        sx={{ textDecoration: "line-through" }}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setEditingCourseId(course.id);
+                                          setEditingCourseTitle(course.title);
+                                        }}
+                                      >
+                                        {course.title}
+                                      </Typography>
+                                      <Chip
+                                        size="small"
+                                        label="Concluído"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setStatusMenuAnchor(e.currentTarget);
+                                          setStatusMenuCourseId(course.id);
+                                        }}
+                                        sx={{
+                                          bgcolor: palette.verde + "18",
+                                          color: palette.verde,
+                                          fontSize: 11,
+                                          height: 22,
+                                          fontWeight: 600,
+                                          cursor: "pointer",
+                                        }}
+                                      />
+                                    </Stack>
+                                    {(course.platform || course.instructor) && (
+                                      <Typography
+                                        fontSize={12}
+                                        color="text.secondary"
+                                        sx={{ mt: 0.2 }}
+                                      >
+                                        {course.platform}
+                                        {course.platform &&
+                                          course.instructor &&
+                                          " · "}
+                                        {course.instructor}
+                                      </Typography>
+                                    )}
+                                  </Box>
                                   <IconButton
                                     size="small"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleDeleteModule(mod.id);
+                                      handleDeleteCourse(course.id);
                                     }}
                                   >
-                                    <Trash2 size={13} color={palette.cinza} />
+                                    <Trash2 size={15} color={palette.cinza} />
                                   </IconButton>
                                 </Stack>
-
-                                <Collapse in={isModExpanded}>
-                                  <Box sx={{ pl: 3 }}>
-                                    {modLessons.map((lesson) => (
-                                      <Stack
-                                        key={lesson.id}
-                                        direction="row"
-                                        alignItems="center"
-                                        spacing={0.5}
-                                        sx={{ py: 0.3 }}
-                                      >
-                                        <Checkbox
-                                          size="small"
-                                          checked={lesson.completed}
-                                          onChange={() =>
-                                            handleToggleLesson(lesson)
-                                          }
-                                          sx={{
-                                            p: 0.3,
-                                            color: palette.verdeClaro,
-                                            "&.Mui-checked": {
-                                              color: palette.verde,
-                                            },
-                                          }}
-                                        />
-                                        {editingLessonId === lesson.id ? (
-                                          <TextField
-                                            variant="standard"
-                                            size="small"
-                                            value={editingLessonTitle}
-                                            onChange={(e) =>
-                                              setEditingLessonTitle(
-                                                e.target.value,
-                                              )
-                                            }
-                                            onKeyDown={(e) => {
-                                              if (e.key === "Enter")
-                                                saveEditLesson(lesson.id);
-                                              if (e.key === "Escape")
-                                                setEditingLessonId(null);
-                                            }}
-                                            onBlur={() =>
-                                              saveEditLesson(lesson.id)
-                                            }
-                                            autoFocus
-                                            sx={{ flex: 1 }}
-                                            InputProps={{
-                                              disableUnderline: true,
-                                            }}
-                                            inputProps={{
-                                              style: { fontSize: 13 },
-                                            }}
-                                          />
-                                        ) : (
-                                          <Typography
-                                            fontSize={13}
-                                            onClick={() => {
-                                              if (!lesson.completed) {
-                                                setEditingLessonId(lesson.id);
-                                                setEditingLessonTitle(
-                                                  lesson.title,
-                                                );
-                                              }
-                                            }}
-                                            sx={{
-                                              flex: 1,
-                                              textDecoration: lesson.completed
-                                                ? "line-through"
-                                                : "none",
-                                              color: lesson.completed
-                                                ? "text.secondary"
-                                                : "text.primary",
-                                              cursor: lesson.completed
-                                                ? "default"
-                                                : "pointer",
-                                            }}
-                                          >
-                                            {lesson.title}
-                                          </Typography>
-                                        )}
-                                        {lesson.duration_min && (
-                                          <Typography
-                                            fontSize={11}
-                                            color="text.secondary"
-                                          >
-                                            {lesson.duration_min}min
-                                          </Typography>
-                                        )}
-                                        <IconButton
-                                          size="small"
-                                          onClick={() =>
-                                            handleDeleteLesson(lesson.id)
-                                          }
-                                        >
-                                          <Trash2
-                                            size={12}
-                                            color={palette.cinza}
-                                          />
-                                        </IconButton>
-                                      </Stack>
-                                    ))}
-
-                                    {addingLessonModule === mod.id ? (
-                                      <Stack
-                                        direction="row"
-                                        spacing={1}
-                                        sx={{ mt: 0.5 }}
-                                      >
-                                        <TextField
-                                          size="small"
-                                          placeholder="Aula"
-                                          value={newLessonTitle}
-                                          onChange={(e) =>
-                                            setNewLessonTitle(e.target.value)
-                                          }
-                                          sx={{ flex: 1 }}
-                                        />
-                                        <TextField
-                                          size="small"
-                                          placeholder="Min"
-                                          type="number"
-                                          value={newLessonDuration}
-                                          onChange={(e) =>
-                                            setNewLessonDuration(e.target.value)
-                                          }
-                                          sx={{ width: 70 }}
-                                        />
-                                        <Button
-                                          size="small"
-                                          variant="contained"
-                                          onClick={() =>
-                                            handleAddLesson(mod.id)
-                                          }
-                                          disabled={actionBusy}
-                                          sx={{ borderRadius: 2 }}
-                                        >
-                                          {actionBusy ? (
-                                            <CircularProgress
-                                              size={20}
-                                              sx={{ color: "white" }}
-                                            />
-                                          ) : (
-                                            "OK"
-                                          )}
-                                        </Button>
-                                        <Button
-                                          size="small"
-                                          onClick={() =>
-                                            setAddingLessonModule(null)
-                                          }
-                                          sx={{ color: palette.cinza }}
-                                        >
-                                          ✕
-                                        </Button>
-                                      </Stack>
-                                    ) : (
-                                      <Button
-                                        size="small"
-                                        startIcon={<Plus size={13} />}
-                                        onClick={() => {
-                                          setAddingLessonModule(mod.id);
-                                          setNewLessonTitle("");
-                                          setNewLessonDuration("");
-                                        }}
-                                        sx={{
-                                          mt: 0.5,
-                                          fontSize: 12,
-                                          color: palette.cinza,
-                                        }}
-                                      >
-                                        Aula
-                                      </Button>
-                                    )}
-                                  </Box>
-                                </Collapse>
                               </Box>
                             );
                           })}
-
-                          {addingModuleCourse === course.id ? (
-                            <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                              <TextField
-                                size="small"
-                                placeholder="Módulo"
-                                value={newModuleTitle}
-                                onChange={(e) =>
-                                  setNewModuleTitle(e.target.value)
-                                }
-                                sx={{ flex: 1 }}
-                              />
-                              <Button
-                                size="small"
-                                variant="contained"
-                                onClick={() => handleAddModule(course.id)}
-                                disabled={actionBusy}
-                                sx={{ borderRadius: 2 }}
-                              >
-                                {actionBusy ? (
-                                  <CircularProgress
-                                    size={20}
-                                    sx={{ color: "white" }}
-                                  />
-                                ) : (
-                                  "OK"
-                                )}
-                              </Button>
-                              <Button
-                                size="small"
-                                onClick={() => setAddingModuleCourse(null)}
-                                sx={{ color: palette.cinza }}
-                              >
-                                ✕
-                              </Button>
-                            </Stack>
-                          ) : (
-                            <Button
-                              size="small"
-                              startIcon={<Plus size={13} />}
-                              onClick={() => {
-                                setAddingModuleCourse(course.id);
-                                setNewModuleTitle("");
-                              }}
-                              sx={{ mt: 1, fontSize: 12, color: palette.cinza }}
-                            >
-                              Módulo
-                            </Button>
-                          )}
-                        </Box>
-                      </Collapse>
-                    </Box>
-                  );
-                })}
-              </Stack>
+                      </Stack>
+                    </Collapse>
+                  </Box>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
@@ -1741,6 +1939,152 @@ export default function Studies() {
               <CircularProgress size={20} sx={{ color: "white" }} />
             ) : (
               "Salvar sessão"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog: exportar PDF */}
+      <Dialog
+        open={exportDialogOpen}
+        onClose={() => setExportDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 1 } }}
+      >
+        <DialogTitle sx={{ pb: 0 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: "12px",
+                bgcolor: "#6366F1" + "18",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Download size={20} color="#6366F1" />
+            </Box>
+            <Box>
+              <Typography fontWeight={600} fontSize={18}>
+                Exportar estudos
+              </Typography>
+              <Typography fontSize={12} color="text.secondary">
+                Gere um PDF com sessões e cursos
+              </Typography>
+            </Box>
+          </Stack>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <Stack spacing={2} sx={{ mt: 3 }}>
+            <TextField
+              label="Data início"
+              type="date"
+              value={exportStart}
+              onChange={(e) => setExportStart(e.target.value)}
+              fullWidth
+              InputLabelProps={{ shrink: !!exportStart || undefined }}
+              sx={{
+                "&:focus-within .MuiInputLabel-root:not(.MuiInputLabel-shrink)":
+                  {
+                    transform: "translate(14px, -9px) scale(0.75)",
+                    color: "primary.main",
+                  },
+                '& input[type="date"]::-webkit-datetime-edit': {
+                  color: exportStart ? "inherit" : "transparent",
+                },
+                '&:focus-within input[type="date"]::-webkit-datetime-edit': {
+                  color: "inherit",
+                },
+              }}
+            />
+            <TextField
+              label="Data fim"
+              type="date"
+              value={exportEnd}
+              onChange={(e) => setExportEnd(e.target.value)}
+              fullWidth
+              InputLabelProps={{ shrink: !!exportEnd || undefined }}
+              sx={{
+                "&:focus-within .MuiInputLabel-root:not(.MuiInputLabel-shrink)":
+                  {
+                    transform: "translate(14px, -9px) scale(0.75)",
+                    color: "primary.main",
+                  },
+                '& input[type="date"]::-webkit-datetime-edit': {
+                  color: exportEnd ? "inherit" : "transparent",
+                },
+                '&:focus-within input[type="date"]::-webkit-datetime-edit': {
+                  color: "inherit",
+                },
+              }}
+            />
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {[
+                {
+                  label: "Última semana",
+                  start: dayjs().subtract(7, "day"),
+                  end: dayjs(),
+                },
+                {
+                  label: "Este mês",
+                  start: dayjs().startOf("month"),
+                  end: dayjs(),
+                },
+                {
+                  label: "Mês passado",
+                  start: dayjs().subtract(1, "month").startOf("month"),
+                  end: dayjs().subtract(1, "month").endOf("month"),
+                },
+                {
+                  label: "Histórico completo",
+                  start: dayjs("2020-01-01"),
+                  end: dayjs(),
+                },
+              ].map((p) => (
+                <Chip
+                  key={p.label}
+                  label={p.label}
+                  size="small"
+                  onClick={() => {
+                    setExportStart(p.start.format("YYYY-MM-DD"));
+                    setExportEnd(p.end.format("YYYY-MM-DD"));
+                  }}
+                  sx={{
+                    bgcolor: "rgba(0,0,0,0.04)",
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
+                  }}
+                />
+              ))}
+            </Stack>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setExportDialogOpen(false)}
+            sx={{ color: palette.cinza }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            disabled={!exportStart || !exportEnd || exporting}
+            onClick={async () => {
+              setExporting(true);
+              await exportStudiesPdf(user!.id, exportStart, exportEnd);
+              setExporting(false);
+              setExportDialogOpen(false);
+            }}
+            sx={{ borderRadius: 2, px: 3 }}
+          >
+            {exporting ? (
+              <CircularProgress size={20} sx={{ color: "white" }} />
+            ) : (
+              "Gerar PDF"
             )}
           </Button>
         </DialogActions>

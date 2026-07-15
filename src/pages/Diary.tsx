@@ -40,6 +40,7 @@ import {
   Flame,
   Sparkles,
   Repeat,
+  Download,
   type LucideIcon,
 } from "lucide-react";
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from "recharts";
@@ -52,6 +53,7 @@ import { palette } from "../theme";
 import PageHeader from "../components/PageHeader";
 import BrotoLoader from "../components/BrotoLoader";
 import MealSection from "../components/MealSection";
+import { exportDiaryPdf } from "../lib/exportDiaryPdf";
 import type {
   MealType,
   MealLog,
@@ -172,6 +174,13 @@ export default function Diary() {
   );
   const [goalDialogValue, setGoalDialogValue] = useState("");
   const [actionBusy, setActionBusy] = useState(false);
+
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportStart, setExportStart] = useState(
+    dayjs().startOf("month").format("YYYY-MM-DD"),
+  );
+  const [exportEnd, setExportEnd] = useState(dayjs().format("YYYY-MM-DD"));
+  const [exporting, setExporting] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -520,13 +529,25 @@ export default function Diary() {
 
   return (
     <Box>
-      <PageHeader
-        eyebrow="Diário"
-        title="Hoje"
-        subtitle={dayjs(today)
-          .format("dddd, D [de] MMMM")
-          .replace(/^\w/, (c) => c.toUpperCase())}
-      />
+      <Stack
+        direction="row"
+        alignItems="flex-start"
+        justifyContent="space-between"
+      >
+        <PageHeader
+          eyebrow="Diário"
+          title="Hoje"
+          subtitle={dayjs(today)
+            .format("dddd, D [de] MMMM")
+            .replace(/^\w/, (c) => c.toUpperCase())}
+        />
+        <IconButton
+          onClick={() => setExportDialogOpen(true)}
+          title="Exportar PDF"
+        >
+          <Download size={20} color={palette.verde} />
+        </IconButton>
+      </Stack>
 
       {/* Resumo rápido do dia — dá contexto imediato antes de rolar pelas 7 seções abaixo */}
       <Stack
@@ -1118,11 +1139,7 @@ export default function Diary() {
         {/* HUMOR */}
         <Card>
           <CardContent>
-            <Stack
-              direction="row"
-              alignItems="flex-start"
-              spacing={2}
-            >
+            <Stack direction="row" alignItems="flex-start" spacing={2}>
               <Box
                 sx={{
                   width: 40,
@@ -1607,6 +1624,152 @@ export default function Diary() {
               <CircularProgress size={20} sx={{ color: "white" }} />
             ) : (
               "Salvar"
+            )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog: exportar PDF */}
+      <Dialog
+        open={exportDialogOpen}
+        onClose={() => setExportDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 1 } }}
+      >
+        <DialogTitle sx={{ pb: 0 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: "12px",
+                bgcolor: palette.verde + "18",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Download size={20} color={palette.verde} />
+            </Box>
+            <Box>
+              <Typography fontWeight={600} fontSize={18}>
+                Exportar diário
+              </Typography>
+              <Typography fontSize={12} color="text.secondary">
+                Gere um PDF com o histórico completo
+              </Typography>
+            </Box>
+          </Stack>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <Stack spacing={2} sx={{ mt: 3 }}>
+            <TextField
+              label="Data início"
+              type="date"
+              value={exportStart}
+              onChange={(e) => setExportStart(e.target.value)}
+              fullWidth
+              InputLabelProps={{ shrink: !!exportStart || undefined }}
+              sx={{
+                "&:focus-within .MuiInputLabel-root:not(.MuiInputLabel-shrink)":
+                  {
+                    transform: "translate(14px, -9px) scale(0.75)",
+                    color: "primary.main",
+                  },
+                '& input[type="date"]::-webkit-datetime-edit': {
+                  color: exportStart ? "inherit" : "transparent",
+                },
+                '&:focus-within input[type="date"]::-webkit-datetime-edit': {
+                  color: "inherit",
+                },
+              }}
+            />
+            <TextField
+              label="Data fim"
+              type="date"
+              value={exportEnd}
+              onChange={(e) => setExportEnd(e.target.value)}
+              fullWidth
+              InputLabelProps={{ shrink: !!exportEnd || undefined }}
+              sx={{
+                "&:focus-within .MuiInputLabel-root:not(.MuiInputLabel-shrink)":
+                  {
+                    transform: "translate(14px, -9px) scale(0.75)",
+                    color: "primary.main",
+                  },
+                '& input[type="date"]::-webkit-datetime-edit': {
+                  color: exportEnd ? "inherit" : "transparent",
+                },
+                '&:focus-within input[type="date"]::-webkit-datetime-edit': {
+                  color: "inherit",
+                },
+              }}
+            />
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {[
+                {
+                  label: "Última semana",
+                  start: dayjs().subtract(7, "day"),
+                  end: dayjs(),
+                },
+                {
+                  label: "Este mês",
+                  start: dayjs().startOf("month"),
+                  end: dayjs(),
+                },
+                {
+                  label: "Mês passado",
+                  start: dayjs().subtract(1, "month").startOf("month"),
+                  end: dayjs().subtract(1, "month").endOf("month"),
+                },
+                {
+                  label: "Histórico completo",
+                  start: dayjs("2020-01-01"),
+                  end: dayjs(),
+                },
+              ].map((p) => (
+                <Chip
+                  key={p.label}
+                  label={p.label}
+                  size="small"
+                  onClick={() => {
+                    setExportStart(p.start.format("YYYY-MM-DD"));
+                    setExportEnd(p.end.format("YYYY-MM-DD"));
+                  }}
+                  sx={{
+                    bgcolor: "rgba(0,0,0,0.04)",
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
+                  }}
+                />
+              ))}
+            </Stack>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setExportDialogOpen(false)}
+            sx={{ color: palette.cinza }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            disabled={!exportStart || !exportEnd || exporting}
+            onClick={async () => {
+              setExporting(true);
+              await exportDiaryPdf(user!.id, exportStart, exportEnd);
+              setExporting(false);
+              setExportDialogOpen(false);
+            }}
+            sx={{ borderRadius: 2, px: 3 }}
+          >
+            {exporting ? (
+              <CircularProgress size={20} sx={{ color: "white" }} />
+            ) : (
+              "Gerar PDF"
             )}
           </Button>
         </DialogActions>

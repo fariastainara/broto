@@ -15,8 +15,19 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
+  Collapse,
+  Chip,
 } from "@mui/material";
-import { Plus, Trash2, ListChecks, CheckSquare } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  ListChecks,
+  CheckSquare,
+  ChevronDown,
+  ChevronRight,
+  CheckCircle2,
+  Download,
+} from "lucide-react";
 import dayjs from "dayjs";
 import "dayjs/locale/pt-br";
 import { supabase } from "../lib/supabaseClient";
@@ -24,6 +35,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { palette } from "../theme";
 import PageHeader from "../components/PageHeader";
 import BrotoLoader from "../components/BrotoLoader";
+import { exportTasksPdf } from "../lib/exportTasksPdf";
 import type { Task, TaskCategory } from "../types";
 
 dayjs.locale("pt-br");
@@ -56,6 +68,14 @@ export default function Tasks() {
   );
   const [editingList, setEditingList] = useState<string | null>(null);
   const [editingListName, setEditingListName] = useState("");
+  const [showCompletedLists, setShowCompletedLists] = useState(false);
+
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportStart, setExportStart] = useState(
+    dayjs().startOf("month").format("YYYY-MM-DD"),
+  );
+  const [exportEnd, setExportEnd] = useState(dayjs().format("YYYY-MM-DD"));
+  const [exporting, setExporting] = useState(false);
 
   async function loadTasks() {
     if (!user) return;
@@ -86,6 +106,24 @@ export default function Tasks() {
     }
     return Array.from(map.entries());
   }, [tasks, emptyLists]);
+
+  // Listas com pendências vs totalmente concluídas
+  const activeLists = useMemo(
+    () =>
+      lists.filter(
+        ([, items]) =>
+          items.length === 0 || items.some((t) => t.status !== "concluida"),
+      ),
+    [lists],
+  );
+  const completedLists = useMemo(
+    () =>
+      lists.filter(
+        ([, items]) =>
+          items.length > 0 && items.every((t) => t.status === "concluida"),
+      ),
+    [lists],
+  );
 
   const totalDone = tasks.filter((t) => t.status === "concluida").length;
   const totalPending = tasks.filter((t) => t.status !== "concluida").length;
@@ -180,11 +218,23 @@ export default function Tasks() {
 
   return (
     <Box>
-      <PageHeader
-        eyebrow="Tarefas"
-        title="Checklists"
-        subtitle={`${lists.length} lista${lists.length !== 1 ? "s" : ""} · ${totalPending} pendente${totalPending !== 1 ? "s" : ""} · ${totalDone} feita${totalDone !== 1 ? "s" : ""}`}
-      />
+      <Stack
+        direction="row"
+        alignItems="flex-start"
+        justifyContent="space-between"
+      >
+        <PageHeader
+          eyebrow="Tarefas"
+          title="Checklists"
+          subtitle={`${lists.length} lista${lists.length !== 1 ? "s" : ""} · ${totalPending} pendente${totalPending !== 1 ? "s" : ""} · ${totalDone} feita${totalDone !== 1 ? "s" : ""}`}
+        />
+        <IconButton
+          onClick={() => setExportDialogOpen(true)}
+          title="Exportar PDF"
+        >
+          <Download size={20} color={palette.verde} />
+        </IconButton>
+      </Stack>
 
       <Stack spacing={2.5}>
         {lists.length === 0 ? (
@@ -273,7 +323,7 @@ export default function Tasks() {
           </Card>
         ) : (
           <>
-            {lists.map(([listName, listTasks]) => {
+            {activeLists.map(([listName, listTasks]) => {
               const done = listTasks.filter(
                 (t) => t.status === "concluida",
               ).length;
@@ -471,6 +521,93 @@ export default function Tasks() {
               );
             })}
 
+            {/* Listas concluídas — colapsável */}
+            {completedLists.length > 0 && (
+              <Box>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  spacing={1}
+                  onClick={() => setShowCompletedLists(!showCompletedLists)}
+                  sx={{ cursor: "pointer", py: 1.5, pl: 0.5 }}
+                >
+                  {showCompletedLists ? (
+                    <ChevronDown size={16} color={palette.cinza} />
+                  ) : (
+                    <ChevronRight size={16} color={palette.cinza} />
+                  )}
+                  <CheckCircle2 size={15} color={palette.verdeClaro} />
+                  <Typography
+                    fontSize={13}
+                    fontWeight={600}
+                    color="text.secondary"
+                  >
+                    {completedLists.length} lista
+                    {completedLists.length !== 1 ? "s" : ""} concluída
+                    {completedLists.length !== 1 ? "s" : ""}
+                  </Typography>
+                </Stack>
+                <Collapse in={showCompletedLists}>
+                  <Stack spacing={1.5}>
+                    {completedLists.map(([listName, listTasks]) => {
+                      const color = LIST_COLORS[listName] || palette.verde;
+                      return (
+                        <Card key={listName} sx={{ opacity: 0.6 }}>
+                          <CardContent sx={{ py: "12px !important" }}>
+                            <Stack
+                              direction="row"
+                              alignItems="center"
+                              spacing={2}
+                            >
+                              <Box
+                                sx={{
+                                  width: 32,
+                                  height: 32,
+                                  borderRadius: "10px",
+                                  bgcolor: color + "18",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                }}
+                              >
+                                <CheckSquare size={16} color={color} />
+                              </Box>
+                              <Box sx={{ flex: 1 }}>
+                                <Typography
+                                  fontWeight={600}
+                                  fontSize={14}
+                                  sx={{
+                                    textTransform: "capitalize",
+                                    textDecoration: "line-through",
+                                  }}
+                                >
+                                  {listName.replace(/_/g, " ")}
+                                </Typography>
+                                <Typography
+                                  fontSize={12}
+                                  color="text.secondary"
+                                >
+                                  {listTasks.length} item
+                                  {listTasks.length !== 1 ? "s" : ""} concluído
+                                  {listTasks.length !== 1 ? "s" : ""}
+                                </Typography>
+                              </Box>
+                              <IconButton
+                                size="small"
+                                onClick={() => setDeleteListConfirm(listName)}
+                              >
+                                <Trash2 size={14} color={palette.cinza} />
+                              </IconButton>
+                            </Stack>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </Stack>
+                </Collapse>
+              </Box>
+            )}
+
             {/* Botão pra criar nova lista */}
             <Button
               startIcon={<Plus size={16} />}
@@ -587,6 +724,147 @@ export default function Tasks() {
             sx={{ borderRadius: 2, px: 3 }}
           >
             Excluir
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Dialog: exportar PDF */}
+      <Dialog
+        open={exportDialogOpen}
+        onClose={() => setExportDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 1 } }}
+      >
+        <DialogTitle sx={{ pb: 0 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Box
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: "12px",
+                bgcolor: palette.verde + "18",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Download size={20} color={palette.verde} />
+            </Box>
+            <Box>
+              <Typography fontWeight={600} fontSize={18}>
+                Exportar tarefas
+              </Typography>
+              <Typography fontSize={12} color="text.secondary">
+                Gere um PDF com suas listas
+              </Typography>
+            </Box>
+          </Stack>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <Stack spacing={2} sx={{ mt: 3 }}>
+            <TextField
+              label="Data início"
+              type="date"
+              value={exportStart}
+              onChange={(e) => setExportStart(e.target.value)}
+              fullWidth
+              InputLabelProps={{ shrink: !!exportStart || undefined }}
+              sx={{
+                "&:focus-within .MuiInputLabel-root:not(.MuiInputLabel-shrink)":
+                  {
+                    transform: "translate(14px, -9px) scale(0.75)",
+                    color: "primary.main",
+                  },
+                '& input[type="date"]::-webkit-datetime-edit': {
+                  color: exportStart ? "inherit" : "transparent",
+                },
+                '&:focus-within input[type="date"]::-webkit-datetime-edit': {
+                  color: "inherit",
+                },
+              }}
+            />
+            <TextField
+              label="Data fim"
+              type="date"
+              value={exportEnd}
+              onChange={(e) => setExportEnd(e.target.value)}
+              fullWidth
+              InputLabelProps={{ shrink: !!exportEnd || undefined }}
+              sx={{
+                "&:focus-within .MuiInputLabel-root:not(.MuiInputLabel-shrink)":
+                  {
+                    transform: "translate(14px, -9px) scale(0.75)",
+                    color: "primary.main",
+                  },
+                '& input[type="date"]::-webkit-datetime-edit': {
+                  color: exportEnd ? "inherit" : "transparent",
+                },
+                '&:focus-within input[type="date"]::-webkit-datetime-edit': {
+                  color: "inherit",
+                },
+              }}
+            />
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {[
+                {
+                  label: "Este mês",
+                  start: dayjs().startOf("month"),
+                  end: dayjs(),
+                },
+                {
+                  label: "Mês passado",
+                  start: dayjs().subtract(1, "month").startOf("month"),
+                  end: dayjs().subtract(1, "month").endOf("month"),
+                },
+                {
+                  label: "Histórico completo",
+                  start: dayjs("2020-01-01"),
+                  end: dayjs(),
+                },
+              ].map((p) => (
+                <Chip
+                  key={p.label}
+                  label={p.label}
+                  size="small"
+                  onClick={() => {
+                    setExportStart(p.start.format("YYYY-MM-DD"));
+                    setExportEnd(p.end.format("YYYY-MM-DD"));
+                  }}
+                  sx={{
+                    bgcolor: "rgba(0,0,0,0.04)",
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
+                  }}
+                />
+              ))}
+            </Stack>
+          </Stack>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setExportDialogOpen(false)}
+            sx={{ color: palette.cinza }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            disabled={!exportStart || !exportEnd || exporting}
+            onClick={async () => {
+              setExporting(true);
+              await exportTasksPdf(user!.id, exportStart, exportEnd);
+              setExporting(false);
+              setExportDialogOpen(false);
+            }}
+            sx={{ borderRadius: 2, px: 3 }}
+          >
+            {exporting ? (
+              <CircularProgress size={20} sx={{ color: "white" }} />
+            ) : (
+              "Gerar PDF"
+            )}
           </Button>
         </DialogActions>
       </Dialog>
