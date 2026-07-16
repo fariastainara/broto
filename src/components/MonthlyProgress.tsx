@@ -70,49 +70,49 @@ const CATEGORIES: CategoryConfig[] = [
   {
     key: "water",
     label: "Hidratação",
-    color: palette.verde,
+    color: "#4A90D9",
     icon: BookOpen,
     fixed: true,
   },
   {
     key: "exercise",
     label: "Exercícios",
-    color: palette.verdeClaro,
+    color: "#52B788",
     icon: BookOpen,
     fixed: true,
   },
   {
     key: "sleep",
     label: "Sono",
-    color: palette.cinza,
+    color: "#9B7FE0",
     icon: BookOpen,
     fixed: true,
   },
   {
     key: "meals",
     label: "Refeições",
-    color: palette.laranja,
+    color: "#E07A3A",
     icon: BookOpen,
     fixed: true,
   },
   {
     key: "study",
     label: "Estudos",
-    color: "#6366F1",
+    color: "#4C63D6",
     icon: BookOpen,
     fixed: false,
   },
   {
     key: "challenge",
     label: "Desafios",
-    color: "#D9A441",
+    color: "#E0574F",
     icon: Flame,
     fixed: false,
   },
   {
     key: "habit",
     label: "Hábitos",
-    color: "#8B5CF6",
+    color: "#C973A0",
     icon: Target,
     fixed: false,
   },
@@ -125,32 +125,82 @@ interface MonthlyProgressProps {
   userId: string;
 }
 
-/** Badge de anéis concêntricos — sem texto dentro; o número do dia fica acima, fora do SVG. */
+/** Badge de anéis concêntricos com progresso parcial */
 function DayRingBadge({
   dayData,
+  dayDetail,
   categories,
 }: {
   dayData: DayData | undefined;
+  dayDetail: DayDetail | undefined;
   categories: CategoryConfig[];
   isToday: boolean;
 }) {
+  function getProgress(cat: CategoryConfig): number {
+    if (!dayData || !dayDetail) return 0;
+    if (dayData[cat.key]) return 1;
+    switch (cat.key) {
+      case "water":
+        return Math.min(1, dayDetail.waterMl / WATER_GOAL);
+      case "meals":
+        return dayDetail.mealsTotal > 0
+          ? Math.min(1, dayDetail.mealsCount / dayDetail.mealsTotal)
+          : dayDetail.mealsCount > 0
+            ? 0.5
+            : 0;
+      case "exercise":
+        return dayDetail.exerciseMin > 0 ? 1 : 0;
+      case "sleep":
+        return dayDetail.sleepHours > 0 ? 1 : 0;
+      case "study":
+        return dayDetail.studyMin > 0 ? 1 : 0;
+      case "challenge":
+        return dayDetail.challengesTotal > 0
+          ? Math.min(1, dayDetail.challengesDone / dayDetail.challengesTotal)
+          : 0;
+      case "habit":
+        return dayDetail.habitsTotal > 0
+          ? Math.min(1, dayDetail.habitsDone / dayDetail.habitsTotal)
+          : 0;
+      default:
+        return 0;
+    }
+  }
+
   return (
     <Box sx={{ position: "relative", width: 28, height: 28, mx: "auto" }}>
       <svg viewBox="0 0 30 30" width="100%" height="100%">
         {categories.map((cat, i) => {
           const radius = RING_OUTER_RADIUS - i * RING_PITCH;
-          const achieved = dayData?.[cat.key] ?? false;
+          const circumference = 2 * Math.PI * radius;
+          const progress = getProgress(cat);
+          const hasAny = progress > 0;
           return (
-            <circle
-              key={cat.key}
-              cx="15"
-              cy="15"
-              r={radius}
-              fill="none"
-              stroke={achieved ? cat.color : "rgba(0,0,0,0.07)"}
-              strokeWidth={RING_STROKE}
-              strokeLinecap="round"
-            />
+            <g key={cat.key}>
+              {/* Fundo do anel */}
+              <circle
+                cx="15"
+                cy="15"
+                r={radius}
+                fill="none"
+                stroke="rgba(0,0,0,0.07)"
+                strokeWidth={RING_STROKE}
+              />
+              {/* Progresso */}
+              {hasAny && (
+                <circle
+                  cx="15"
+                  cy="15"
+                  r={radius}
+                  fill="none"
+                  stroke={cat.color}
+                  strokeWidth={RING_STROKE}
+                  strokeLinecap="round"
+                  strokeDasharray={`${circumference * progress} ${circumference}`}
+                  transform="rotate(-90 15 15)"
+                />
+              )}
+            </g>
           );
         })}
       </svg>
@@ -554,6 +604,7 @@ export default function MonthlyProgress({ userId }: MonthlyProgressProps) {
                 const isFuture =
                   isCurrentMonth && dayjs(date).isAfter(today, "day");
                 const dayData = data.get(date);
+                const dayDetail = details.get(date);
                 const isToday = isCurrentMonth && d === today.date();
                 const achievedLabels = activeCategories
                   .filter((c) => dayData?.[c.key])
@@ -607,6 +658,7 @@ export default function MonthlyProgress({ userId }: MonthlyProgressProps) {
                     ) : (
                       <DayRingBadge
                         dayData={dayData}
+                        dayDetail={dayDetail}
                         categories={activeCategories}
                         isToday={isToday}
                       />
@@ -746,7 +798,7 @@ export default function MonthlyProgress({ userId }: MonthlyProgressProps) {
                     textAlign="center"
                     sx={{ mb: 0.5 }}
                   >
-                    Dia {selectedDay.day} · {achieved}/{total}
+                    Dia {selectedDay.day}
                   </Typography>
                   <Typography
                     fontSize={12}

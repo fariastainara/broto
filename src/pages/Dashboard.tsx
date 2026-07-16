@@ -1396,18 +1396,16 @@ export default function Dashboard() {
                         ? dayjs().subtract(6, "day")
                         : dayjs().subtract(dayjs().day() - 1, "day");
                     const days: { day: string; kg: number | null }[] = [];
+                    const todayStr = dayjs().format("YYYY-MM-DD");
                     for (let i = 0; i < 7; i++) {
                       const d = wkStart.add(i, "day");
                       const dayStr = d.format("YYYY-MM-DD");
+                      const isFuture = dayStr > todayStr;
                       const w = weights.find((wt) => wt.logged_date === dayStr);
                       days.push({
                         day: d.format("ddd"),
-                        kg: w ? w.weight_kg : null,
+                        kg: w ? w.weight_kg : isFuture ? null : baseWeight,
                       });
-                    }
-                    // Se nenhum dia tem peso, usa o baseWeight como linha reta
-                    if (days.every((d) => d.kg === null) && baseWeight) {
-                      return days.map((d) => ({ ...d, kg: baseWeight }));
                     }
                     return days;
                   })()}

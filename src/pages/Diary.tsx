@@ -1085,52 +1085,6 @@ export default function Diary() {
                 </>
               );
             })()}
-
-            {weightChartData.length >= 2 && (
-              <Box sx={{ width: "100%", height: 120, mt: 2, pl: 7 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={weightChartData}>
-                    <defs>
-                      <linearGradient
-                        id="weightGrad"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="5%"
-                          stopColor={palette.verdeClaro}
-                          stopOpacity={0.4}
-                        />
-                        <stop
-                          offset="95%"
-                          stopColor={palette.verdeClaro}
-                          stopOpacity={0}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <XAxis
-                      dataKey="date"
-                      fontSize={10}
-                      tickLine={false}
-                      axisLine={false}
-                    />
-                    <Tooltip
-                      formatter={(v) => [`${v} kg`, "Peso"]}
-                      contentStyle={{ fontSize: 12, borderRadius: 8 }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="kg"
-                      stroke={palette.verdeClaro}
-                      fill="url(#weightGrad)"
-                      strokeWidth={2}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </Box>
-            )}
           </CardContent>
         </Card>
 
